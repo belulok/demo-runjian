@@ -7,7 +7,7 @@ import { BoToast } from './components/BoToast';
 import { MapStage } from './components/MapStage';
 import { CommandPalette } from './components/CommandPalette';
 import { ACTIONS } from './data';
-import { BO_COMMANDS, type BoCommand } from './data/commands';
+import { BO_COMMANDS, findCommand, type BoCommand } from './data/commands';
 import type { ActionKey, AgentKey, Plant } from './types';
 
 const ACTION_PAYLOADS: Record<ActionKey, Record<string, unknown>> = {
@@ -47,7 +47,14 @@ export default function App() {
   }, [selectedPlantId, fireBoAction]);
 
   const onPeekAction = useCallback((action: string, plantId: string) => {
-    fireBoAction({ source_panel: 'plant_peek', action: action.toUpperCase(), plantId });
+    // The peek now passes BO command IDs (e.g. "monitor.plant", "alarm.escalate").
+    // Resolve them through the BO_COMMANDS catalog when possible; fall back to a raw action.
+    const cmd = findCommand(action);
+    if (cmd) {
+      fireBoAction({ source_panel: 'plant_peek', command_id: cmd.id, category: cmd.category, plantId, ...cmd.payload });
+    } else {
+      fireBoAction({ source_panel: 'plant_peek', action: action.toUpperCase(), plantId });
+    }
   }, [fireBoAction]);
 
   const onChatFire = useCallback((action: string, plantId?: string, team?: string) => {
@@ -98,6 +105,7 @@ export default function App() {
           onSelectPlant={onSelectPlant}
           onPeekAction={onPeekAction}
           actionBar={<ActionBar onAction={onAction} />}
+          onOpenPalette={() => setPaletteOpen(true)}
         />
         <ChatPanel
           agentKey={activeAgent}

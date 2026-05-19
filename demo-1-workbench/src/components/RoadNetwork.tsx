@@ -39,10 +39,10 @@ export function RoadNetwork() {
     <svg className="road-network" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <radialGradient id="orb-grad-purple">
-          <stop offset="0%"  stopColor="#f5f3ff" stopOpacity="1"/>
-          <stop offset="35%" stopColor="#c4b5fd" stopOpacity=".95"/>
-          <stop offset="70%" stopColor="#a855f7" stopOpacity=".55"/>
-          <stop offset="100%" stopColor="#a855f7" stopOpacity="0"/>
+          <stop offset="0%"  stopColor="#ffffff" stopOpacity="1"/>
+          <stop offset="35%" stopColor="#e5e5e7" stopOpacity=".95"/>
+          <stop offset="70%" stopColor="#a1a1aa" stopOpacity=".55"/>
+          <stop offset="100%" stopColor="#a1a1aa" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="orb-grad-teal">
           <stop offset="0%"  stopColor="#ccfbf1" stopOpacity="1"/>
@@ -72,22 +72,22 @@ export function RoadNetwork() {
          ============================================================ */}
 
       {/* Horizontal arteries — subtle violet glow so the network reads as a "grid" */}
-      <path id="rd-h1" d="M2,20  L98,20"  stroke="rgba(196, 181, 253, .18)" strokeWidth=".25" fill="none"/>
-      <path id="rd-h2" d="M2,38  L98,38"  stroke="rgba(196, 181, 253, .18)" strokeWidth=".25" fill="none"/>
-      <path id="rd-h3" d="M2,55  L98,55"  stroke="rgba(196, 181, 253, .24)" strokeWidth=".3"  fill="none"/>
-      <path id="rd-h4" d="M2,72  L98,72"  stroke="rgba(196, 181, 253, .18)" strokeWidth=".25" fill="none"/>
-      <path id="rd-h5" d="M2,87  L98,87"  stroke="rgba(196, 181, 253, .18)" strokeWidth=".25" fill="none"/>
+      <path id="rd-h1" d="M2,20  L98,20"  stroke="rgba(255, 255, 255, .18)" strokeWidth=".25" fill="none"/>
+      <path id="rd-h2" d="M2,38  L98,38"  stroke="rgba(255, 255, 255, .18)" strokeWidth=".25" fill="none"/>
+      <path id="rd-h3" d="M2,55  L98,55"  stroke="rgba(255, 255, 255, .24)" strokeWidth=".3"  fill="none"/>
+      <path id="rd-h4" d="M2,72  L98,72"  stroke="rgba(255, 255, 255, .18)" strokeWidth=".25" fill="none"/>
+      <path id="rd-h5" d="M2,87  L98,87"  stroke="rgba(255, 255, 255, .18)" strokeWidth=".25" fill="none"/>
 
       {/* Vertical arteries */}
-      <path id="rd-v1" d="M14,2 L14,98" stroke="rgba(196, 181, 253, .18)" strokeWidth=".25" fill="none"/>
-      <path id="rd-v2" d="M32,2 L32,98" stroke="rgba(196, 181, 253, .18)" strokeWidth=".25" fill="none"/>
-      <path id="rd-v3" d="M50,2 L50,98" stroke="rgba(196, 181, 253, .24)" strokeWidth=".3"  fill="none"/>
-      <path id="rd-v4" d="M68,2 L68,98" stroke="rgba(196, 181, 253, .18)" strokeWidth=".25" fill="none"/>
-      <path id="rd-v5" d="M86,2 L86,98" stroke="rgba(196, 181, 253, .18)" strokeWidth=".25" fill="none"/>
+      <path id="rd-v1" d="M14,2 L14,98" stroke="rgba(255, 255, 255, .18)" strokeWidth=".25" fill="none"/>
+      <path id="rd-v2" d="M32,2 L32,98" stroke="rgba(255, 255, 255, .18)" strokeWidth=".25" fill="none"/>
+      <path id="rd-v3" d="M50,2 L50,98" stroke="rgba(255, 255, 255, .24)" strokeWidth=".3"  fill="none"/>
+      <path id="rd-v4" d="M68,2 L68,98" stroke="rgba(255, 255, 255, .18)" strokeWidth=".25" fill="none"/>
+      <path id="rd-v5" d="M86,2 L86,98" stroke="rgba(255, 255, 255, .18)" strokeWidth=".25" fill="none"/>
 
       {/* Loop routes — used for patrols */}
-      <path id="rd-loop-outer" d="M6,16 L94,16 L94,90 L6,90 Z" stroke="rgba(196, 181, 253, .14)" strokeWidth=".22" fill="none"/>
-      <path id="rd-loop-inner" d="M22,30 L78,30 L78,80 L22,80 Z" stroke="rgba(196, 181, 253, .14)" strokeWidth=".22" fill="none"/>
+      <path id="rd-loop-outer" d="M6,16 L94,16 L94,90 L6,90 Z" stroke="rgba(255, 255, 255, .14)" strokeWidth=".22" fill="none"/>
+      <path id="rd-loop-inner" d="M22,30 L78,30 L78,80 L22,80 Z" stroke="rgba(255, 255, 255, .14)" strokeWidth=".22" fill="none"/>
 
       {/* Aerial paths (drone, helicopter) — curved sweeps */}
       <path id="ar-drone-1"  d="M5,10 Q 50,5  95,15  Q 95,55 60,52  Q 30,50 20,80  Q 50,95 90,80" stroke="none" fill="none"/>
@@ -97,51 +97,47 @@ export function RoadNetwork() {
          DATA-FLOW ORBS — distributed all along the road network.
          Each road gets several orbs at different speeds + colors.
          ============================================================ */}
+      {/* Much fewer orbs now — only major arteries get traffic so it doesn't
+          look like a strobe show. Same staggered cadence, just less density. */}
       <g>
-        {orbsOn('rd-h1', 5, 14, ORB_FILL_PURPLE, 1.3)}
-        {orbsOn('rd-h2', 6, 16, ORB_FILL_TEAL,   1.2)}
-        {orbsOn('rd-h3', 7, 18, ORB_FILL_PURPLE, 1.3)}
-        {orbsOn('rd-h4', 6, 17, ORB_FILL_TEAL,   1.2)}
-        {orbsOn('rd-h5', 5, 15, ORB_FILL_AMBER,  1.15)}
-
-        {orbsOn('rd-v1', 4, 18, ORB_FILL_PURPLE, 1.2)}
-        {orbsOn('rd-v2', 5, 20, ORB_FILL_TEAL,   1.15)}
-        {orbsOn('rd-v3', 6, 16, ORB_FILL_PURPLE, 1.3)}
-        {orbsOn('rd-v4', 5, 20, ORB_FILL_TEAL,   1.15)}
-        {orbsOn('rd-v5', 4, 17, ORB_FILL_AMBER,  1.2)}
-
-        {/* outer-loop ambient orbs */}
-        {orbsOn('rd-loop-outer', 8, 32, ORB_FILL_PURPLE, 1.0)}
+        {orbsOn('rd-h2', 2, 22, ORB_FILL_TEAL,   1.0)}
+        {orbsOn('rd-h3', 3, 24, ORB_FILL_PURPLE, 1.1)}
+        {orbsOn('rd-h4', 2, 22, ORB_FILL_TEAL,   1.0)}
+        {orbsOn('rd-v2', 2, 28, ORB_FILL_TEAL,   1.0)}
+        {orbsOn('rd-v3', 3, 24, ORB_FILL_PURPLE, 1.1)}
+        {orbsOn('rd-v4', 2, 28, ORB_FILL_TEAL,   1.0)}
       </g>
 
       {/* ============================================================
          VEHICLES — cars + vans + trucks, bigger so they read at all zooms
          ============================================================ */}
       <g className="vehicles">
-        {/* Yellow utility cars on horizontal roads */}
-        <Vehicle road="rd-h1" dur={26} color="#fbbf24" w={3.4} h={1.7}/>
-        <Vehicle road="rd-h2" dur={32} color="#fbbf24" w={3.4} h={1.7} reverse begin={4}/>
-        <Vehicle road="rd-h3" dur={28} color="#fde68a" w={3.0} h={1.5} begin={9}/>
-        <Vehicle road="rd-h4" dur={30} color="#fbbf24" w={3.4} h={1.7} reverse begin={2}/>
+        {/* Cars on horizontal roads — fewer of them, no more strobe */}
+        <Vehicle road="rd-h2" dur={32} color="#e5e5e7" w={3.2} h={1.6}/>
+        <Vehicle road="rd-h3" dur={28} color="#a1a1aa" w={3.0} h={1.5} reverse begin={9}/>
+        <Vehicle road="rd-h4" dur={36} color="#e5e5e7" w={3.2} h={1.6} reverse begin={4}/>
 
-        {/* Service vans (white) on vertical arteries — bright halo */}
-        <Vehicle road="rd-v2" dur={36} color="#f8fafc" w={4.0} h={2.0} halo="#c4b5fd" begin={3}/>
-        <Vehicle road="rd-v4" dur={34} color="#f8fafc" w={4.0} h={2.0} halo="#c4b5fd" reverse begin={11}/>
+        {/* Service van (white) on a vertical artery */}
+        <Vehicle road="rd-v2" dur={40} color="#f8fafc" w={4.0} h={2.0} halo="rgba(255,255,255,.5)" begin={3}/>
 
-        {/* Patrol trucks running the outer/inner loops */}
-        <Vehicle road="rd-loop-outer" dur={56} color="#fb923c" w={3.8} h={1.8} halo="#fcd34d" rotate/>
-        <Vehicle road="rd-loop-inner" dur={48} color="#a855f7" w={3.4} h={1.7} halo="#c4b5fd" rotate reverse begin={6}/>
+        {/* AMBULANCE responding to the Penang alarm — runs the inner loop */}
+        <Ambulance road="rd-loop-inner" dur={54} begin={2}/>
+
+        {/* Outer-loop patrol */}
+        <Vehicle road="rd-loop-outer" dur={68} color="#a1a1aa" w={3.6} h={1.7} rotate begin={0}/>
       </g>
 
       {/* ============================================================
          TECHNICIANS — small green dots w/ wearable broadcast rings.
          They walk slow loops near key substations / solar arrays.
          ============================================================ */}
+      {/* Walking humans — uses Chen Wei technician sprite. Two technicians
+          patrolling on shorter loops near substations. Plus one with a
+          wearable broadcast ring (slowed down so it doesn't strobe). */}
       <g className="techs">
-        <Technician road="rd-h2" dur={70} begin={0}/>
-        <Technician road="rd-h4" dur={84} begin={14}/>
-        <Technician road="rd-v3" dur={92} begin={5}/>
-        <Technician road="rd-loop-inner" dur={120} begin={20}/>
+        <WalkingTech road="rd-h4" dur={70} begin={0}  href="/generated/characters/chen-wei-technician/chen_wei_technician_walk_01.png"/>
+        <WalkingTech road="rd-v3" dur={88} begin={20} href="/generated/characters/chen-wei-technician/chen_wei_technician_walk_02.png"/>
+        <Technician  road="rd-h2" dur={92} begin={5}/>
       </g>
 
       {/* ============================================================
@@ -212,23 +208,65 @@ function Vehicle({
   );
 }
 
-/* ---------- technician with wearable broadcast rings ---------- */
+/* ---------- technician with wearable broadcast ring (single, slow) ---------- */
 function Technician({ road, dur, begin = 0 }: { road: string; dur: number; begin?: number }) {
   return (
     <g>
-      {/* core body — bright green dot */}
-      <circle r="0.9" fill="#34d399" filter="url(#wearable-glow)" />
-      <circle r="0.5" fill="#ecfeff" />
-      {/* wearable broadcast: 2 expanding rings, staggered */}
-      <circle r="0.9" fill="none" stroke="#34d399" strokeWidth=".24" opacity="0">
-        <animate attributeName="r"       values=".9;3.0;.9"  dur="2.2s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values=".95;0;0;.95" dur="2.2s" repeatCount="indefinite" />
-      </circle>
-      <circle r="0.9" fill="none" stroke="#34d399" strokeWidth=".18" opacity="0">
-        <animate attributeName="r"       values=".9;3.0;.9"  dur="2.2s" begin="1.1s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values=".95;0;0;.95" dur="2.2s" begin="1.1s" repeatCount="indefinite" />
+      <circle r="0.7" fill="#34d399" filter="url(#wearable-glow)" />
+      <circle r="0.4" fill="#ecfeff" />
+      {/* single, slow broadcast ring — no longer a strobe */}
+      <circle r="0.7" fill="none" stroke="#34d399" strokeWidth=".22" opacity="0">
+        <animate attributeName="r"       values=".7;2.4;.7"   dur="5s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values=".7;0;0;.7"   dur="5s" repeatCount="indefinite" />
       </circle>
       <animateMotion dur={`${dur}s`} begin={`${begin}s`} repeatCount="indefinite">
+        <mpath href={`#${road}`} />
+      </animateMotion>
+    </g>
+  );
+}
+
+/* ---------- walking technician using a generated sprite from /assets ---------- */
+function WalkingTech({ road, dur, begin = 0, href }: { road: string; dur: number; begin?: number; href: string }) {
+  return (
+    <g>
+      {/* small shadow ellipse beneath */}
+      <ellipse rx="1.0" ry="0.35" cy="0.6" fill="rgba(0,0,0,.55)" filter="url(#actor-blur)"/>
+      {/* sprite from the assets pack */}
+      <image href={href} x="-1.4" y="-2.2" width="2.8" height="2.8" />
+      {/* subtle green glow ring around the walker */}
+      <circle r="1.3" fill="none" stroke="#34d399" strokeWidth=".14" opacity=".35"/>
+      <animateMotion dur={`${dur}s`} begin={`${begin}s`} repeatCount="indefinite">
+        <mpath href={`#${road}`} />
+      </animateMotion>
+    </g>
+  );
+}
+
+/* ---------- ambulance with rotating siren swirl ---------- */
+function Ambulance({ road, dur, begin = 0, reverse }: { road: string; dur: number; begin?: number; reverse?: boolean }) {
+  const keyTimes  = reverse ? '1;0' : '0;1';
+  const keyPoints = reverse ? '1;0' : '0;1';
+  return (
+    <g>
+      {/* white body w/ red cross stripe */}
+      <ellipse rx="2.8" ry="2.0" fill="rgba(255,255,255,.20)" filter="url(#wearable-glow)"/>
+      <rect x="-1.9" y="-0.95" width="3.8" height="1.9" rx="0.35" fill="#ffffff"/>
+      <rect x="-1.9" y="-0.18" width="3.8" height="0.36" fill="#f43f5e"/>
+      <rect x="-0.18" y="-0.95" width="0.36" height="1.9" fill="#f43f5e"/>
+      {/* rotating siren halo — slow rotation, soft red/blue alternation via single color cycle */}
+      <circle cx="0" cy="-0.95" r="0.45" fill="#f43f5e" opacity=".85">
+        <animate attributeName="fill" values="#f43f5e;#60a5fa;#f43f5e" dur="1.4s" repeatCount="indefinite"/>
+      </circle>
+      <animateMotion
+        dur={`${dur}s`}
+        begin={`${begin}s`}
+        repeatCount="indefinite"
+        rotate="auto"
+        keyPoints={keyPoints}
+        keyTimes={keyTimes}
+        calcMode="linear"
+      >
         <mpath href={`#${road}`} />
       </animateMotion>
     </g>

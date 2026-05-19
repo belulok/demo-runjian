@@ -19,6 +19,8 @@ interface Props {
   onPeekAction: (action: string, plantId: string) => void;
   /** Bottom action bar — rendered inside the stage so the existing absolute positioning works. */
   actionBar?: React.ReactNode;
+  /** Open the global command palette (peek "More commands…" link). */
+  onOpenPalette?: () => void;
 }
 
 /** Small floating HUD that reads the live zoom/pan from react-zoom-pan-pinch. */
@@ -102,8 +104,8 @@ function MapHudTop({ time }: { time: string }) {
 
 /** Re-usable plant peek popover — shown next to the selected plant. */
 function PlantPeek({
-  plant, anchorEl, onAction, onClose,
-}: { plant: Plant; anchorEl: HTMLElement; onAction: (a: string) => void; onClose: () => void }) {
+  plant, anchorEl, onAction, onClose, onOpenPalette,
+}: { plant: Plant; anchorEl: HTMLElement; onAction: (a: string) => void; onClose: () => void; onOpenPalette?: () => void }) {
   const peekRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -152,11 +154,37 @@ function PlantPeek({
         <div><span>Today</span><strong>{plant.today}</strong></div>
         <div><span>Status</span><strong>{plant.status === 'critical' ? `Alarm (${plant.alarms || 1})` : 'Online'}</strong></div>
       </div>
+      <div className="peek-section-label">MONITORING</div>
       <div className="peek-actions">
-        <button onClick={() => onAction('inspect')}>Inspect</button>
-        <button onClick={() => onAction('diagnose')}>Diagnose</button>
-        <button onClick={() => onAction('dispatch')}>Dispatch</button>
+        <button onClick={() => onAction('monitor.plant')}>📡 Live Monitor</button>
+        <button onClick={() => onAction('monitor.device')}>🛠 Device Status</button>
+        <button onClick={() => onAction('monitor.video')}>🎥 CCTV / PTZ</button>
       </div>
+
+      <div className="peek-section-label">DIAGNOSTICS</div>
+      <div className="peek-actions">
+        <button onClick={() => onAction('alarm.device')}>🚨 Active Alarms</button>
+        <button onClick={() => onAction('inspect.start')}>🔎 Run SOP</button>
+        <button onClick={() => onAction('analysis.trend')}>📈 Trend</button>
+      </div>
+
+      <div className="peek-section-label">DISPATCH</div>
+      <div className="peek-actions">
+        <button onClick={() => onAction('ticket.create')}>📝 Work Order</button>
+        <button onClick={() => onAction('ticket.dispatch')}>🚐 Dispatch Crew</button>
+        <button onClick={() => onAction('asset.maintenance')}>🔧 Maintenance</button>
+      </div>
+
+      <div className="peek-section-label">REPORTS & ESCALATE</div>
+      <div className="peek-actions">
+        <button onClick={() => onAction('report.smart')}>🤖 Smart Report</button>
+        <button onClick={() => onAction('ticket.history')}>📜 History</button>
+        <button className="destructive" onClick={() => onAction('alarm.escalate')}>🆘 SOS</button>
+      </div>
+
+      <button className="peek-more" onClick={() => { onClose(); onOpenPalette?.(); }}>
+        Open command palette · {65}+ BO commands  ⌘K →
+      </button>
     </div>
   );
 }
@@ -167,7 +195,7 @@ function statusClass(status: PlantStatus): string {
   return 'normal';
 }
 
-export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionBar }: Props) {
+export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionBar, onOpenPalette }: Props) {
   const wrapperRef = useRef<ReactZoomPanPinchRef>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -234,6 +262,7 @@ export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionB
             anchorEl={selectedEl}
             onAction={(a) => onPeekAction(a, selectedPlant.id)}
             onClose={() => onSelectPlant(null)}
+            onOpenPalette={onOpenPalette}
           />
         )}
       </div>
@@ -274,15 +303,10 @@ export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionB
             with wearable broadcast rings, drone, helicopter). */}
         <RoadNetwork />
 
-        {/* Central command radar sweep */}
+        {/* Central command radar sweep — slow rotating cone only (shockwaves removed) */}
         <div className="cmd-radar">
           <div className="radar-cone" />
-          <div className="radar-shock" />
-          <div className="radar-shock d" />
         </div>
-
-        {/* Periodic full-map HUD scan-line */}
-        <div className="hud-scan" />
 
         {/* alarm beacon */}
         <div className="alarm-ping">

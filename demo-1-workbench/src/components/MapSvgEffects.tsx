@@ -62,17 +62,14 @@ export function MapSvgEffects() {
           <rect x="84" y="38" width="9"  height="13" fill="#facc15" opacity=".10" />
         </g>
 
-        {/* ---------- AVIATION LIGHTS ---------- */}
-        {/* tower tops — red blink, slightly staggered */}
-        <BlinkDot cx={12} cy={5}  color="#ef4444" period={1.4} delay={0}    />
-        <BlinkDot cx={50} cy={2}  color="#ef4444" period={1.4} delay={0.3}  />
-        <BlinkDot cx={92} cy={5}  color="#ef4444" period={1.4} delay={0.6}  />
-        <BlinkDot cx={96} cy={62} color="#ef4444" period={1.4} delay={0.9}  />
-        <BlinkDot cx={4}  cy={26} color="#ef4444" period={1.4} delay={1.1}  />
-        {/* water tower — amber, slower */}
-        <BlinkDot cx={80} cy={4}  color="#fbbf24" period={2.4} delay={0}    sizeBoost />
-        {/* Building antenna — cyan, very subtle */}
-        <BlinkDot cx={50} cy={32} color="#22d3ee" period={3.2} delay={0.5}  thin />
+        {/* ---------- AVIATION LIGHTS (slow, ambient — no more strobe) ---------- */}
+        <BlinkDot cx={12} cy={5}  color="#ef4444" period={3.6} delay={0}    />
+        <BlinkDot cx={50} cy={2}  color="#ef4444" period={3.6} delay={0.9}  />
+        <BlinkDot cx={92} cy={5}  color="#ef4444" period={3.6} delay={1.8}  />
+        <BlinkDot cx={96} cy={62} color="#ef4444" period={4.0} delay={1.2}  />
+        <BlinkDot cx={4}  cy={26} color="#ef4444" period={4.0} delay={2.4}  />
+        <BlinkDot cx={80} cy={4}  color="#fbbf24" period={5.0} delay={0}    sizeBoost />
+        <BlinkDot cx={50} cy={32} color="#22d3ee" period={6.0} delay={0.5}  thin />
 
         {/* ---------- WINDOW LIGHT FLICKER (control building) ---------- */}
         <g opacity=".7">
@@ -143,7 +140,7 @@ function ArcLightning() {
   useEffect(() => {
     let id = 0;
     function schedule() {
-      const wait = 4200 + Math.random() * 5800; // 4.2 - 10s between strikes
+      const wait = 14000 + Math.random() * 16000; // 14–30s between strikes (was 4–10s)
       timerRef.current = window.setTimeout(() => {
         const [x1, y1, x2, y2] = ARC_PAIRS[Math.floor(Math.random() * ARC_PAIRS.length)];
         const d = jaggedPath(x1, y1, x2, y2, 6 + Math.floor(Math.random() * 3), 0.9);

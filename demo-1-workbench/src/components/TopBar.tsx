@@ -37,17 +37,17 @@ export function TopBar() {
           <svg viewBox="0 0 32 32" width="28" height="28">
             <defs>
               <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#c4b5fd" />
-                <stop offset="100%" stopColor="#7c3aed" />
+                <stop offset="0%" stopColor="#e5e5e7" />
+                <stop offset="100%" stopColor="#52525b" />
               </linearGradient>
               <linearGradient id="g2" x1="1" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ec4899" />
-                <stop offset="100%" stopColor="#a855f7" />
+                <stop offset="0%" stopColor="#71717a" />
+                <stop offset="100%" stopColor="#a1a1aa" />
               </linearGradient>
             </defs>
             <rect x="3" y="3" width="11" height="11" rx="3" fill="url(#g1)" />
             <rect x="18" y="3" width="11" height="11" rx="3" fill="url(#g2)" opacity=".85" />
-            <rect x="3" y="18" width="11" height="11" rx="3" fill="#7c3aed" opacity=".55" />
+            <rect x="3" y="18" width="11" height="11" rx="3" fill="#52525b" opacity=".55" />
             <rect x="18" y="18" width="11" height="11" rx="3" fill="url(#g1)" opacity=".95" />
           </svg>
         </div>
