@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   TransformWrapper,
   TransformComponent,
@@ -11,7 +11,8 @@ import { PLANTS } from '../data';
 import mapUrl from '../../map.png?url';
 import { MapPixiOverlay } from './MapPixiOverlay';
 import { MapSvgEffects } from './MapSvgEffects';
-import { RoadNetwork } from './RoadNetwork';
+import { RoadNetwork, type ActorInfo } from './RoadNetwork';
+import { ActorPeek } from './ActorPeek';
 
 interface Props {
   selectedPlantId: string | null;
@@ -198,6 +199,7 @@ function statusClass(status: PlantStatus): string {
 export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionBar, onOpenPalette }: Props) {
   const wrapperRef = useRef<ReactZoomPanPinchRef>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const [selectedActor, setSelectedActor] = useState<{ actor: ActorInfo; el: SVGGElement } | null>(null);
 
   // live MYT clock
   const [time, setTime] = useState(() => formatMyt());
@@ -233,7 +235,7 @@ export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionB
           doubleClick={{ disabled: true }}
           panning={{
             velocityDisabled: false,
-            excluded: ['plant', 'plant-icon', 'plant-label', 'plant-peek', 'map-hud-top', 'map-hud-bottom'],
+            excluded: ['plant', 'plant-icon', 'plant-label', 'plant-peek', 'map-hud-top', 'map-hud-bottom', 'map-actor', 'actor-peek'],
           }}
           velocityAnimation={{
             sensitivity: 0.85,
@@ -263,6 +265,17 @@ export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionB
             onAction={(a) => onPeekAction(a, selectedPlant.id)}
             onClose={() => onSelectPlant(null)}
             onOpenPalette={onOpenPalette}
+          />
+        )}
+
+        {selectedActor && (
+          <ActorPeek
+            actor={selectedActor.actor}
+            anchorEl={selectedActor.el}
+            onClose={() => setSelectedActor(null)}
+            onAction={(action, actor) => {
+              onPeekAction(`actor.${action}`, `${actor.kind}:${actor.id}`);
+            }}
           />
         )}
       </div>
@@ -301,12 +314,9 @@ export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionB
             Replaces the old dashed point-to-point lines + 3 sprite actors with a
             structured road grid + many actors (cars, vans, trucks, technicians
             with wearable broadcast rings, drone, helicopter). */}
-        <RoadNetwork />
+        <RoadNetwork onSelectActor={(actor, el) => setSelectedActor({ actor, el })} />
 
-        {/* Central command radar sweep — slow rotating cone only (shockwaves removed) */}
-        <div className="cmd-radar">
-          <div className="radar-cone" />
-        </div>
+        {/* Central radar removed — keep the map calm. */}
 
         {/* alarm beacon */}
         <div className="alarm-ping">

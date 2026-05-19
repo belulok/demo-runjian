@@ -65,11 +65,8 @@ export function MapPixiOverlay() {
           { x: 0.27, y: 0.10, color: 0xdfeaf3, drift: 0.18, rise: -0.5, sizeMin: 3, sizeMax: 7, spawnMs: 130 },
           { x: 0.35, y: 0.09, color: 0xdfeaf3, drift: 0.22, rise: -0.45, sizeMin: 3, sizeMax: 6, spawnMs: 150 },
         ];
-        const SPARK_YARDS = [
-          { x: 0.13, y: 0.55, color: 0x67e8f9, drift: 0.0, rise: -0.5, sizeMin: 0.8, sizeMax: 1.6, spawnMs: 240 },
-          { x: 0.31, y: 0.40, color: 0x67e8f9, drift: 0.0, rise: -0.4, sizeMin: 0.8, sizeMax: 1.6, spawnMs: 280 },
-          { x: 0.70, y: 0.49, color: 0x67e8f9, drift: 0.0, rise: -0.4, sizeMin: 0.8, sizeMax: 1.6, spawnMs: 260 },
-          { x: 0.86, y: 0.42, color: 0x67e8f9, drift: 0.0, rise: -0.5, sizeMin: 0.8, sizeMax: 1.6, spawnMs: 220 },
+        const SPARK_YARDS: Array<{ x: number; y: number; color: number; drift: number; rise: number; sizeMin: number; sizeMax: number; spawnMs: number }> = [
+          // sparks removed — user asked to strip the strobe effects
         ];
 
         type Spec = (typeof SMOKE_TOWERS)[number];
