@@ -8,7 +8,8 @@ interface Props {
   onAction: (action: string, actor: ActorInfo) => void;
 }
 
-const ACTIONS_BY_KIND: Record<ActorInfo['kind'], { id: string; label: string; icon: string; destructive?: boolean }[]> = {
+type ActionDef = { id: string; label: string; icon: string; destructive?: boolean };
+const ACTIONS_BY_KIND: Record<ActorInfo['kind'], ActionDef[]> = {
   van: [
     { id: 'track',   label: 'Track',   icon: '📍' },
     { id: 'recall',  label: 'Recall',  icon: '↩' },
@@ -18,6 +19,20 @@ const ACTIONS_BY_KIND: Record<ActorInfo['kind'], { id: string; label: string; ic
     { id: 'dispatch', label: 'Dispatch',  icon: '🚐' },
     { id: 'track',    label: 'Track',     icon: '📍' },
     { id: 'sos',      label: 'SOS',       icon: '🆘', destructive: true },
+  ],
+  truck: [
+    { id: 'track',   label: 'Track',   icon: '📍' },
+    { id: 'recall',  label: 'Recall',  icon: '↩' },
+    { id: 'inspect', label: 'Inspect Load', icon: '📦' },
+  ],
+  car: [
+    { id: 'track',   label: 'Track',   icon: '📍' },
+    { id: 'contact', label: 'Contact', icon: '📞' },
+  ],
+  robot: [
+    { id: 'recall', label: 'Recall', icon: '↩' },
+    { id: 'scan',   label: 'Scan Now', icon: '📡' },
+    { id: 'thermal', label: 'Thermal Sweep', icon: '🌡' },
   ],
   crew: [
     { id: 'message',  label: 'Message',   icon: '💬' },
@@ -34,6 +49,16 @@ const ACTIONS_BY_KIND: Record<ActorInfo['kind'], { id: string; label: string; ic
     { id: 'approve',  label: 'Approve',  icon: '✔' },
     { id: 'schedule', label: 'Schedule', icon: '📅' },
   ],
+  tech: [
+    { id: 'message',   label: 'Message',   icon: '💬' },
+    { id: 'wearable',  label: 'Wearable',  icon: '⌚' },
+    { id: 'reassign',  label: 'Reassign',  icon: '↪' },
+  ],
+  warehouse: [
+    { id: 'message',   label: 'Message',     icon: '💬' },
+    { id: 'inventory', label: 'Inventory',   icon: '📦' },
+    { id: 'checkout',  label: 'Check Out',   icon: '✔' },
+  ],
   drone: [
     { id: 'recall',   label: 'Recall',         icon: '↩' },
     { id: 'stream',   label: 'Live Stream',    icon: '📺' },
@@ -42,6 +67,7 @@ const ACTIONS_BY_KIND: Record<ActorInfo['kind'], { id: string; label: string; ic
   helicopter: [
     { id: 'recall', label: 'Recall', icon: '↩' },
     { id: 'track',  label: 'Track',  icon: '📍' },
+    { id: 'stream', label: 'Live Stream', icon: '📺' },
   ],
 };
 

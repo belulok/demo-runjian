@@ -318,19 +318,16 @@ export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionB
 
         {/* Central radar removed — keep the map calm. */}
 
-        {/* alarm beacon */}
-        <div className="alarm-ping">
-          <div className="ap-ring" />
-          <div className="ap-ring d" />
-          <div className="ap-ring d2" />
-          <div className="ap-text">⚠ ALARM</div>
-        </div>
+        {/* (alarm beacon removed — no more flashing rings near Penang) */}
 
-        {/* plant markers */}
+        {/* plant markers — Warcraft-RTS style unit tokens (substation icon in
+            yellow-bordered box, HP bar underneath, name label below) */}
         <div className="plants">
           {PLANTS.map(p => {
             const isSel = p.id === selectedPlantId;
             const isAlert = p.status === 'critical';
+            // Derive HP from alarm count (no alarms = 90s, critical = 48%)
+            const hp = isAlert ? 48 : 96 - (p.alarms || 0) * 8;
             return (
               <button
                 key={p.id}
@@ -343,15 +340,27 @@ export function MapStage({ selectedPlantId, onSelectPlant, onPeekAction, actionB
                   onSelectPlant(p);
                 }}
               >
-                <div className={`plant-pulse ${isAlert ? 'alert' : ''}`} />
-                <div className="plant-icon">
-                  <img src="/generated/electrical/solar-panel.png" alt="" />
+                {/* selection ground ring */}
+                <div className={`plant-ring ${isAlert ? 'alert' : ''} ${isSel ? 'selected' : ''}`} />
+                {/* (plant alert pulse ring removed — no more expanding red rings) */}
+
+                {/* unit portrait (substation icon in yellow-bordered box) */}
+                <div className={`plant-icon ${isAlert ? 'alert' : ''}`}>
+                  <img src="/generated/infrastructure/substation.png" alt="" />
                 </div>
+
+                {/* alarm count badge */}
                 {isAlert && p.alarms ? <div className="plant-alert-badge">{p.alarms}</div> : null}
+
+                {/* name pill */}
                 <div className={`plant-label ${isAlert ? 'alert' : ''}`}>
                   <div className={`plant-status ${statusClass(p.status)}`} />
-                  <div className="plant-name">{p.name.split('-')[0]}</div>
-                  <div className="plant-power">{p.capMW < 1 ? `${Math.round(p.capMW * 1000)} kWp` : `${p.capMW.toFixed(2)} MWp`}</div>
+                  <div className="plant-name">{p.name.split('-')[0]}{isAlert ? ' ⚠' : ''}</div>
+                </div>
+
+                {/* HP bar */}
+                <div className="plant-hp">
+                  <div className={`plant-hp-fill ${isAlert ? 'alert' : ''}`} style={{ width: `${hp}%` }} />
                 </div>
               </button>
             );
