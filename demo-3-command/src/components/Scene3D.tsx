@@ -34,12 +34,12 @@ export function Scene3D({ selectedPlantId, onSelectPlant, actionBar }: Props) {
         <directionalLight position={[40, 60, 20]} intensity={1.6} castShadow />
         <color attach="background" args={['#e9eef6']} />
 
-        {/* Ground */}
+        {/* Ground — wider to accommodate the new districts */}
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[260, 260]} />
+          <planeGeometry args={[360, 360]} />
           <meshStandardMaterial color="#eef3f8" roughness={1} />
         </mesh>
-        <gridHelper args={[260, 52, '#cbd6e2', '#dde6f0']} position={[0, 0.01, 0]} />
+        <gridHelper args={[360, 72, '#cbd6e2', '#dde6f0']} position={[0, 0.01, 0]} />
 
         {/* River */}
         <mesh receiveShadow position={[-44, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -48,7 +48,11 @@ export function Scene3D({ selectedPlantId, onSelectPlant, actionBar }: Props) {
         </mesh>
 
         <Mountains />
+        {/* MASSIVE CITY — multi-district urban environment surrounding the compound */}
         <CitySkyline />
+        <CommercialDistrict />
+        <HousingDistrict />
+        <IndustrialZone />
         <WindFarm origin={[-38, 0, -34]} />
         <WindFarm origin={[ 38, 0, -34]} />
         <WindFarm origin={[ 60, 0,  10]} />
@@ -129,7 +133,12 @@ export function Scene3D({ selectedPlantId, onSelectPlant, actionBar }: Props) {
         <Html position={[  0, 22,   0]} center distanceFactor={20}><Poi label="Admin Tower" /></Html>
         <Html position={[-32,  4,  10]} center distanceFactor={20}><Poi label="Carpark A" /></Html>
         <Html position={[ 32,  4,  10]} center distanceFactor={20}><Poi label="Carpark B" /></Html>
-        <Html position={[ 50, 28, -50]} center distanceFactor={20}><Poi label="City District" /></Html>
+        <Html position={[ 50, 28, -50]} center distanceFactor={20}><Poi label="Downtown" /></Html>
+        <Html position={[  0, 14,  62]} center distanceFactor={20}><Poi label="Commercial District" /></Html>
+        <Html position={[-62,  5,   8]} center distanceFactor={20}><Poi label="West Housing" /></Html>
+        <Html position={[ 60,  5,  36]} center distanceFactor={20}><Poi label="East Housing" /></Html>
+        <Html position={[-58, 14,  34]} center distanceFactor={20}><Poi label="Warehouse Park" /></Html>
+        <Html position={[ 66, 10, -16]} center distanceFactor={20}><Poi label="Container Yard" /></Html>
 
         <OrbitControls
           target={[0, 4, 0]}
@@ -528,35 +537,197 @@ function Person({ path, speed, color, hat }: {
   );
 }
 
-/* -------- City skyline behind the compound -------- */
+/* -------- Massive downtown skyline behind the compound (4 dense rows) -------- */
 function CitySkyline() {
   const buildings = useMemo(() => {
-    // Deterministic seed so the layout doesn't reshuffle each render
     const out: { x: number; z: number; w: number; d: number; h: number; tint: number }[] = [];
     let s = 12345;
     const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-    const cols = 14, rowZ = -52;
-    for (let i = 0; i < cols; i++) {
-      const x = -52 + i * 8 + rand() * 2;
-      const h = 18 + rand() * 28;
-      const w = 4 + rand() * 3.5;
-      const d = 4 + rand() * 3.5;
-      out.push({ x, z: rowZ - rand() * 8, w, d, h, tint: rand() });
+    // 4 staggered rows of tall skyscrapers, each row further back + slightly smaller
+    const ROWS = [
+      { z: -52, count: 16, hMin: 22, hMax: 52, wMin: 4.5, wMax: 7.5 },  // tallest, frontmost
+      { z: -64, count: 14, hMin: 26, hMax: 58, wMin: 5,   wMax: 8   },  // signature towers
+      { z: -76, count: 12, hMin: 16, hMax: 36, wMin: 4,   wMax: 6.5 },
+      { z: -88, count: 10, hMin: 12, hMax: 28, wMin: 3.5, wMax: 5.5 },
+    ];
+    for (const row of ROWS) {
+      for (let i = 0; i < row.count; i++) {
+        const x = -row.count * 4 + i * 8 + (rand() - .5) * 2.5;
+        const z = row.z - (rand() - .5) * 6;
+        const w = row.wMin + rand() * (row.wMax - row.wMin);
+        const d = row.wMin + rand() * (row.wMax - row.wMin);
+        const h = row.hMin + rand() * (row.hMax - row.hMin);
+        out.push({ x, z, w, d, h, tint: rand() });
+      }
     }
-    // Second row, slightly further back + smaller
-    for (let i = 0; i < cols - 2; i++) {
-      const x = -48 + i * 8 + rand() * 2;
-      const h = 12 + rand() * 18;
-      const w = 3.5 + rand() * 3;
-      const d = 3.5 + rand() * 3;
-      out.push({ x, z: rowZ - 14 - rand() * 6, w, d, h, tint: rand() });
+    // Side wings (east + west)
+    for (let i = 0; i < 8; i++) {
+      const z = -40 + i * 8 + (rand() - .5) * 3;
+      const h = 14 + rand() * 24;
+      out.push({ x: -68 - rand() * 6, z, w: 4 + rand() * 3, d: 4 + rand() * 3, h, tint: rand() });
+      out.push({ x:  68 + rand() * 6, z, w: 4 + rand() * 3, d: 4 + rand() * 3, h, tint: rand() });
     }
     return out;
   }, []);
   return (
     <group>
-      {buildings.map((b, i) => (
-        <Skyscraper key={i} {...b} />
+      {buildings.map((b, i) => <Skyscraper key={i} {...b} />)}
+    </group>
+  );
+}
+
+/* -------- Mid-rise commercial district (south of the compound) -------- */
+function CommercialDistrict() {
+  const buildings = useMemo(() => {
+    const out: { x: number; z: number; w: number; d: number; h: number; tint: number }[] = [];
+    let s = 33333;
+    const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    // Two rows of mid-rises behind the housing area to the south
+    for (let i = 0; i < 18; i++) {
+      const x = -50 + i * 5.6 + (rand() - .5) * 1.6;
+      const z = 56 + (rand() - .5) * 3;
+      const h = 8 + rand() * 14;
+      out.push({ x, z, w: 3.4 + rand() * 2.4, d: 3.4 + rand() * 2.4, h, tint: rand() });
+    }
+    for (let i = 0; i < 15; i++) {
+      const x = -42 + i * 5.6 + (rand() - .5) * 1.6;
+      const z = 66 + (rand() - .5) * 3;
+      const h = 6 + rand() * 12;
+      out.push({ x, z, w: 3.2 + rand() * 2, d: 3.2 + rand() * 2, h, tint: rand() });
+    }
+    return out;
+  }, []);
+  return (
+    <group>
+      {buildings.map((b, i) => <Skyscraper key={`com-${i}`} {...b} />)}
+    </group>
+  );
+}
+
+/* -------- Housing district (small residential blocks with pitched-roof tint) -------- */
+function HousingDistrict() {
+  const houses = useMemo(() => {
+    const out: { x: number; z: number; w: number; d: number; h: number; roof: string; wall: string }[] = [];
+    let s = 77777;
+    const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    const ROOFS = ['#b91c1c', '#92400e', '#0e7490', '#475569', '#7c2d12', '#1d4ed8'];
+    const WALLS = ['#fef3c7', '#fde68a', '#e7e5e4', '#fff7ed', '#f1f5f9', '#fafaf9'];
+    // 3 rows along the WEST side (negative X), away from the river
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 8; col++) {
+        const x = -76 + col * 3.6 + (rand() - .5) * 0.4;
+        const z = 0 + row * 4 + (rand() - .5) * 0.4;
+        const w = 2.6 + rand() * 0.8;
+        const d = 3.0 + rand() * 0.6;
+        const h = 1.8 + rand() * 1.4;
+        out.push({ x, z, w, d, h, roof: ROOFS[Math.floor(rand() * ROOFS.length)], wall: WALLS[Math.floor(rand() * WALLS.length)] });
+      }
+    }
+    // Sister neighborhood on the EAST
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 8; col++) {
+        const x = 50 + col * 3.6 + (rand() - .5) * 0.4;
+        const z = 30 + row * 4 + (rand() - .5) * 0.4;
+        const w = 2.6 + rand() * 0.8;
+        const d = 3.0 + rand() * 0.6;
+        const h = 1.8 + rand() * 1.4;
+        out.push({ x, z, w, d, h, roof: ROOFS[Math.floor(rand() * ROOFS.length)], wall: WALLS[Math.floor(rand() * WALLS.length)] });
+      }
+    }
+    return out;
+  }, []);
+  return (
+    <group>
+      {houses.map((h, i) => <House key={i} {...h} />)}
+    </group>
+  );
+}
+
+function House({ x, z, w, d, h, roof, wall }: { x: number; z: number; w: number; d: number; h: number; roof: string; wall: string }) {
+  return (
+    <group position={[x, 0, z]}>
+      {/* walls */}
+      <mesh position={[0, h / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[w, h, d]} />
+        <meshStandardMaterial color={wall} roughness={.95} />
+      </mesh>
+      {/* pitched roof (a wider, flatter box) */}
+      <mesh position={[0, h + 0.3, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+        <coneGeometry args={[Math.max(w, d) * 0.75, 1.0, 4]} />
+        <meshStandardMaterial color={roof} roughness={1} />
+      </mesh>
+      {/* door */}
+      <mesh position={[0, 0.45, d / 2 + 0.02]}>
+        <boxGeometry args={[0.4, 0.9, 0.04]} />
+        <meshStandardMaterial color="#451a03" />
+      </mesh>
+    </group>
+  );
+}
+
+/* -------- Industrial zone (warehouses + chimneys) east of the compound -------- */
+function IndustrialZone() {
+  const ware = useMemo(() => {
+    const out: { x: number; z: number; w: number; d: number; h: number; color: string }[] = [];
+    let s = 55555;
+    const rand = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    const COLORS = ['#cbd5e1', '#9ca3af', '#94a3b8', '#a8a29e', '#e2e8f0'];
+    // Long warehouses to the SOUTH-WEST
+    for (let i = 0; i < 6; i++) {
+      const x = -68 + i * 9 + (rand() - .5);
+      const z = 32 + (rand() - .5) * 2;
+      out.push({ x, z, w: 7 + rand() * 1.5, d: 4.5 + rand(), h: 3.5 + rand() * 1.5, color: COLORS[Math.floor(rand() * COLORS.length)] });
+    }
+    // Container-like blocks far north-east
+    for (let i = 0; i < 8; i++) {
+      const x = 60 + (i % 4) * 4.5 + (rand() - .5);
+      const z = -16 + Math.floor(i / 4) * 5 + (rand() - .5);
+      out.push({ x, z, w: 3.4, d: 3.6, h: 2.4 + rand() * 1.5, color: COLORS[Math.floor(rand() * COLORS.length)] });
+    }
+    return out;
+  }, []);
+  const chimneys: { x: number; z: number; h: number }[] = [
+    { x: -62, z: 30, h: 14 },
+    { x: -55, z: 36, h: 16 },
+    { x:  72, z: 36, h: 12 },
+  ];
+  return (
+    <group>
+      {/* warehouses */}
+      {ware.map((b, i) => (
+        <group key={i} position={[b.x, 0, b.z]}>
+          <mesh position={[0, b.h / 2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[b.w, b.h, b.d]} />
+            <meshStandardMaterial color={b.color} roughness={.95} />
+          </mesh>
+          {/* roof ridge stripe */}
+          <mesh position={[0, b.h + 0.08, 0]}>
+            <boxGeometry args={[b.w + 0.04, 0.16, b.d + 0.04]} />
+            <meshStandardMaterial color="#475569" />
+          </mesh>
+        </group>
+      ))}
+      {/* industrial chimneys with steam plume marker */}
+      {chimneys.map((c, i) => (
+        <group key={i} position={[c.x, 0, c.z]}>
+          <mesh position={[0, c.h / 2, 0]} castShadow>
+            <cylinderGeometry args={[0.6, 0.8, c.h, 12]} />
+            <meshStandardMaterial color="#a8a29e" />
+          </mesh>
+          <mesh position={[0, c.h - 0.4, 0]}>
+            <cylinderGeometry args={[0.75, 0.6, 0.6, 12]} />
+            <meshStandardMaterial color="#525258" />
+          </mesh>
+          {/* fake steam puff */}
+          <mesh position={[0, c.h + 1.6, 0]}>
+            <sphereGeometry args={[1.0, 12, 12]} />
+            <meshStandardMaterial color="#e2e8f0" transparent opacity={.6} roughness={1} />
+          </mesh>
+          <mesh position={[0.6, c.h + 2.6, 0.3]}>
+            <sphereGeometry args={[0.7, 10, 10]} />
+            <meshStandardMaterial color="#e2e8f0" transparent opacity={.45} roughness={1} />
+          </mesh>
+        </group>
       ))}
     </group>
   );
@@ -601,12 +772,17 @@ function Trees() {
       const z = -45 + rand() * 90;
       // exclude footprint of major structures
       const tooClose =
-        (Math.abs(x) < 14 && Math.abs(z) < 14) ||                      // center admin
+        (Math.abs(x) < 14 && Math.abs(z) < 14) ||                       // center admin
         ([-28, 0, 28].some(px => Math.hypot(x - px, z - (-22)) < 8)) || // plant top row
-        ([-18, 18].some(px => Math.hypot(x - px, z - 22) < 8))  ||    // plant bottom row
+        ([-18, 18].some(px => Math.hypot(x - px, z - 22) < 8))   ||     // plant bottom row
         ([-12, 12, 0].some(px => Math.hypot(x - px, z - (-10)) < 10)) ||
-        (Math.abs(z - 18) < 5 && Math.abs(x) < 9) ||                  // bottom solar farm
-        (z < -42);                                                    // city zone
+        (Math.abs(z - 18) < 5 && Math.abs(x) < 9) ||                    // bottom solar farm
+        (z < -42)                              ||                       // downtown skyline
+        (z > 54)                               ||                       // commercial district
+        (x < -50 && z >= -2 && z <= 18)        ||                       // west housing
+        (x >  46 && z >= 28 && z <= 50)        ||                       // east housing
+        (x < -45 && z >= 28 && z <= 40)        ||                       // SW warehouses
+        (x >  55 && z >= -22 && z <= -8);                               // NE container blocks
       if (!tooClose) candidate.push([x, z]);
     }
     out.push(...candidate.slice(0, 36));
