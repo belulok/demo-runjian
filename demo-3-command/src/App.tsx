@@ -5,7 +5,7 @@ import { Telemetry } from './components/Telemetry';
 import { ChatPanel } from './components/ChatPanel';
 import { ActionBar } from './components/ActionBar';
 import { BoToast } from './components/BoToast';
-import { MapStage } from './components/MapStage';
+import { Scene3D } from './components/Scene3D';
 import { CommandPalette } from './components/CommandPalette';
 import { ACTIONS } from './data';
 import { BO_COMMANDS, findCommand, type BoCommand } from './data/commands';
@@ -144,12 +144,11 @@ export default function App() {
         </aside>
 
         <section className="col-center">
-          <MapStage
+          <Scene3D
             selectedPlantId={selectedPlantId}
             onSelectPlant={onSelectPlant}
             onPeekAction={onPeekAction}
             actionBar={<ActionBar onAction={onAction} />}
-            onOpenPalette={() => setPaletteOpen(true)}
           />
         </section>
 
