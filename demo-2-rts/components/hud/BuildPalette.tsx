@@ -21,10 +21,19 @@ const STRUCTURE_ORDER: StructureKind[] = [
   "inverter",
   "transformer",
   "tower",
+  "comm_tower",
+  "power_pylon",
   "meter",
   "combiner",
   "battery",
   "depot",
+  "control_building",
+  "substation",
+  "warehouse",
+  "skyscraper",
+  "office_block",
+  "apartment",
+  "shop",
 ];
 const DECOR_ORDER: StructureKind[] = ["tree", "light_pole", "bollard", "fence_h", "fence_v"];
 

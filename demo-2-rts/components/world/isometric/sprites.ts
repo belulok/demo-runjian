@@ -192,6 +192,468 @@ export function drawPanelArray(g: Graphics, footprintW: number, footprintH: numb
     .stroke({ color: 0xffffff, width: 0.7, alpha: 0.22 });
 }
 
+/** Control Building — multi-storey office with lit window grid + roof antenna. */
+export function drawControlBuilding(g: Graphics, fw: number, fh: number, hTiles: number, faces: FaceColors, accent: number) {
+  drawBox3Face(g, fw, fh, hTiles, faces, accent);
+  const h = hTiles * TILE_H;
+  const { top, right, bottom, left } = footprintDiamond(fw, fh);
+
+  // Floor bands + window grid on left and right faces
+  const floors = 5;
+  for (let floor = 0; floor < floors; floor++) {
+    const yMid = -h + (floor + 0.5) * (h / floors);
+    // Left face windows
+    for (let i = 0; i < 5; i++) {
+      const t = 0.12 + i * 0.18;
+      const wx = lerp(left.x, bottom.x, t);
+      const wy = lerp(left.y, bottom.y, t);
+      const lit = (floor + i) % 3 !== 0;
+      g.rect(wx - 1, wy + yMid - 1.5, 2, 3).fill({ color: lit ? 0xfde68a : 0x1a2238, alpha: lit ? 0.85 : 1 });
+    }
+    // Right face windows
+    for (let i = 0; i < 5; i++) {
+      const t = 0.12 + i * 0.18;
+      const wx = lerp(bottom.x, right.x, t);
+      const wy = lerp(bottom.y, right.y, t);
+      const lit = (floor + i) % 4 !== 0;
+      g.rect(wx - 1, wy + yMid - 1.5, 2, 3).fill({ color: lit ? 0xfde68a : 0x1a2238, alpha: lit ? 0.85 : 1 });
+    }
+  }
+
+  // Floor separators on the front (bottom) face
+  for (let floor = 1; floor < floors; floor++) {
+    const y = -h + floor * (h / floors);
+    g.moveTo(left.x, left.y + y).lineTo(bottom.x, bottom.y + y).stroke({ color: 0x000000, width: 0.4, alpha: 0.55 });
+    g.moveTo(bottom.x, bottom.y + y).lineTo(right.x, right.y + y).stroke({ color: 0x000000, width: 0.4, alpha: 0.55 });
+  }
+
+  // Entrance door on the front-right face
+  const dx = lerp(bottom.x, right.x, 0.22);
+  const dy = lerp(bottom.y, right.y, 0.22);
+  g.poly([dx - 2.5, dy, dx + 2.5, dy, dx + 2.5, dy - h * 0.18, dx - 2.5, dy - h * 0.18])
+    .fill({ color: 0x1a1a1a });
+  g.poly([dx - 2.5, dy, dx + 2.5, dy, dx + 2.5, dy - h * 0.18, dx - 2.5, dy - h * 0.18])
+    .stroke({ color: accent, width: 0.4, alpha: 0.6 });
+
+  // Roof parapet edge
+  g.poly([top.x, top.y - h, right.x, right.y - h, bottom.x, bottom.y - h, left.x, left.y - h])
+    .stroke({ color: accent, width: 0.7, alpha: 0.7 });
+
+  // Rooftop antenna mast with strobe
+  g.rect(-0.5, -h - 18, 1, 18).fill({ color: 0x586071 });
+  g.moveTo(-3, -h - 6).lineTo(3, -h - 6).stroke({ color: 0x586071, width: 0.6 });
+  g.circle(0, -h - 18, 1.6).fill({ color: accent });
+  g.circle(0, -h - 18, 5).fill({ color: accent, alpha: 0.25 });
+}
+
+/** Substation building — large industrial shed with rooftop switchgear. */
+export function drawSubstation(g: Graphics, fw: number, fh: number, hTiles: number, faces: FaceColors, accent: number) {
+  drawBox3Face(g, fw, fh, hTiles, faces, accent);
+  const h = hTiles * TILE_H;
+  const { top, right, bottom, left } = footprintDiamond(fw, fh);
+
+  // Vent louvre bands across right face
+  for (let row = 0; row < 2; row++) {
+    const yMid = -h + (row + 0.5) * (h / 2);
+    for (let i = 0; i < 4; i++) {
+      const t = 0.15 + i * 0.2;
+      const lx = lerp(bottom.x, right.x, t);
+      const ly = lerp(bottom.y, right.y, t);
+      g.rect(lx - 2.5, ly + yMid - 1, 5, 2).fill({ color: 0x000000, alpha: 0.55 });
+    }
+  }
+
+  // Double roller doors on front (bottom-right) face
+  for (let i = 0; i < 2; i++) {
+    const t = 0.22 + i * 0.32;
+    const dx = lerp(bottom.x, right.x, t);
+    const dy = lerp(bottom.y, right.y, t);
+    g.poly([dx - 3, dy, dx + 3, dy, dx + 3, dy - h * 0.55, dx - 3, dy - h * 0.55])
+      .fill({ color: 0x1a1a1a });
+    g.poly([dx - 3, dy, dx + 3, dy, dx + 3, dy - h * 0.55, dx - 3, dy - h * 0.55])
+      .stroke({ color: accent, width: 0.4, alpha: 0.55 });
+  }
+
+  // Side signage on left face
+  const sx = lerp(left.x, bottom.x, 0.4);
+  const sy = lerp(left.y, bottom.y, 0.4);
+  g.rect(sx - 5, sy - h * 0.78, 10, 2.5).fill({ color: accent, alpha: 0.85 });
+
+  // Rooftop switchgear pods (3 along the long axis)
+  const rooftopY = -h;
+  for (let i = 0; i < 3; i++) {
+    const t = 0.2 + i * 0.3;
+    const cx = lerp(left.x, right.x, t);
+    const cy = lerp(left.y, right.y, t);
+    // Pod body
+    g.rect(cx - 3.5, cy + rooftopY - 7, 7, 7).fill({ color: 0x4a5468 });
+    g.rect(cx - 3.5, cy + rooftopY - 7, 7, 1.2).fill({ color: accent, alpha: 0.7 });
+    // Bushings (3 ceramic stalks)
+    for (let j = -1; j <= 1; j++) {
+      g.circle(cx + j * 2, cy + rooftopY - 7, 0.9).fill({ color: 0xddd6c4 });
+      g.moveTo(cx + j * 2, cy + rooftopY - 7).lineTo(cx + j * 2, cy + rooftopY - 13).stroke({ color: 0xddd6c4, width: 0.7 });
+      g.circle(cx + j * 2, cy + rooftopY - 13, 0.6).fill({ color: 0xddd6c4 });
+    }
+  }
+
+  // Roof edge accent
+  g.poly([top.x, top.y - h, right.x, right.y - h, bottom.x, bottom.y - h, left.x, left.y - h])
+    .stroke({ color: accent, width: 0.7, alpha: 0.6 });
+}
+
+/** Comm Tower — tall lattice mast with antenna array and red navigation light. */
+export function drawCommTower(g: Graphics, accent: number) {
+  const h = 4.0 * TILE_H;
+
+  // Concrete base pad
+  g.poly([-10, 0, 0, 5, 10, 0, 0, -5]).fill({ color: 0x3a4256 });
+  g.poly([-10, 0, 0, 5, 10, 0, 0, -5]).stroke({ color: 0x000000, width: 0.4, alpha: 0.5 });
+
+  // Tapered lattice mast
+  const baseHalf = 4.5;
+  const topHalf = 0.8;
+  g.moveTo(-baseHalf, 0).lineTo(-topHalf, -h).stroke({ color: 0x586071, width: 1.5 });
+  g.moveTo(baseHalf, 0).lineTo(topHalf, -h).stroke({ color: 0x586071, width: 1.5 });
+  g.moveTo(0, 0).lineTo(0, -h).stroke({ color: 0x4a5066, width: 1 });
+
+  // Horizontal lattice bands + X-braces
+  const bands = 16;
+  for (let i = 1; i < bands; i++) {
+    const t = i / bands;
+    const y = -t * h;
+    const halfW = lerp(baseHalf, topHalf, t);
+    g.moveTo(-halfW, y).lineTo(halfW, y).stroke({ color: 0x4a5066, width: 0.5, alpha: 0.6 });
+    if (i % 2 === 1 && i < bands - 1) {
+      const nT = (i + 1) / bands;
+      const nY = -nT * h;
+      const nHalf = lerp(baseHalf, topHalf, nT);
+      g.moveTo(-halfW, y).lineTo(nHalf, nY).stroke({ color: 0x363c4d, width: 0.3, alpha: 0.6 });
+      g.moveTo(halfW, y).lineTo(-nHalf, nY).stroke({ color: 0x363c4d, width: 0.3, alpha: 0.6 });
+    }
+  }
+
+  // Maintenance platforms
+  for (const heightFrac of [0.35, 0.62, 0.85]) {
+    const y = -h * heightFrac;
+    const halfW = lerp(baseHalf, topHalf, heightFrac);
+    g.rect(-halfW - 2.5, y - 1.2, (halfW + 2.5) * 2, 1.6).fill({ color: 0x3a4458 });
+    g.rect(-halfW - 2.5, y - 1.2, (halfW + 2.5) * 2, 0.6).fill({ color: accent, alpha: 0.6 });
+    // Railings
+    g.moveTo(-halfW - 2.5, y - 1.2).lineTo(-halfW - 2.5, y - 4).stroke({ color: 0x586071, width: 0.4 });
+    g.moveTo(halfW + 2.5, y - 1.2).lineTo(halfW + 2.5, y - 4).stroke({ color: 0x586071, width: 0.4 });
+  }
+
+  // Dish antenna mid-tower
+  g.circle(-6, -h * 0.55, 3).fill({ color: 0xddd6c4 }).stroke({ color: 0x000000, width: 0.3 });
+  g.moveTo(-3, -h * 0.55).lineTo(-1, -h * 0.55).stroke({ color: 0x586071, width: 0.5 });
+
+  // Top antenna array — vertical whip + crossarm with antennas
+  g.moveTo(0, -h).lineTo(0, -h - 24).stroke({ color: 0x586071, width: 1 });
+  g.moveTo(-8, -h - 9).lineTo(8, -h - 9).stroke({ color: 0x586071, width: 0.8 });
+  for (const xPos of [-8, -4, 4, 8]) {
+    g.rect(xPos - 0.8, -h - 13, 1.6, 5).fill({ color: 0x586071 });
+  }
+
+  // Red navigation strobe at the apex
+  g.circle(0, -h - 24, 2.2).fill({ color: 0xef4444 }).stroke({ color: 0xffffff, width: 0.3 });
+  g.circle(0, -h - 24, 7).fill({ color: 0xef4444, alpha: 0.3 });
+}
+
+/** Power Pylon — high-voltage transmission lattice with three crossarms. */
+export function drawPowerPylon(g: Graphics, accent: number) {
+  const h = 3.5 * TILE_H;
+  const baseHalf = 7;
+  const waistHalf = 1.6;
+  const topHalf = 2.4;
+  const waistY = -h * 0.55;
+
+  // Concrete footings around base (visible front 2)
+  g.rect(-baseHalf - 1, -1, 3, 3).fill({ color: 0x3a4256 });
+  g.rect(baseHalf - 2, -1, 3, 3).fill({ color: 0x3a4256 });
+
+  // Legs (base → waist)
+  g.moveTo(-baseHalf, 0).lineTo(-waistHalf, waistY).stroke({ color: 0x586071, width: 1.6 });
+  g.moveTo(baseHalf, 0).lineTo(waistHalf, waistY).stroke({ color: 0x586071, width: 1.6 });
+  g.moveTo(0, 0).lineTo(0, waistY).stroke({ color: 0x4a5066, width: 1 });
+
+  // Body (waist → top, slight outward splay)
+  g.moveTo(-waistHalf, waistY).lineTo(-topHalf, -h).stroke({ color: 0x586071, width: 1.5 });
+  g.moveTo(waistHalf, waistY).lineTo(topHalf, -h).stroke({ color: 0x586071, width: 1.5 });
+  g.moveTo(0, waistY).lineTo(0, -h).stroke({ color: 0x4a5066, width: 1 });
+
+  // Horizontal lattice rungs + X-braces
+  const rungs = 14;
+  for (let i = 1; i < rungs; i++) {
+    const t = i / rungs;
+    const y = -t * h;
+    let halfW: number;
+    if (y > waistY) {
+      const localT = y / waistY;
+      halfW = lerp(baseHalf, waistHalf, localT);
+    } else {
+      const localT = (waistY - y) / (waistY - -h);
+      halfW = lerp(waistHalf, topHalf, localT);
+    }
+    g.moveTo(-halfW, y).lineTo(halfW, y).stroke({ color: 0x4a5066, width: 0.4, alpha: 0.6 });
+    if (i % 2 === 0 && i < rungs - 1) {
+      const nT = (i + 1) / rungs;
+      const nY = -nT * h;
+      let nHalf: number;
+      if (nY > waistY) {
+        nHalf = lerp(baseHalf, waistHalf, nY / waistY);
+      } else {
+        nHalf = lerp(waistHalf, topHalf, (waistY - nY) / (waistY - -h));
+      }
+      g.moveTo(-halfW, y).lineTo(nHalf, nY).stroke({ color: 0x363c4d, width: 0.3, alpha: 0.5 });
+      g.moveTo(halfW, y).lineTo(-nHalf, nY).stroke({ color: 0x363c4d, width: 0.3, alpha: 0.5 });
+    }
+  }
+
+  // Three crossarms with insulator strings
+  const armConfig = [
+    { y: -h * 0.5, halfW: 10 },
+    { y: -h * 0.72, halfW: 12 },
+    { y: -h * 0.94, halfW: 7 },
+  ];
+  for (const { y, halfW } of armConfig) {
+    g.rect(-halfW, y - 0.6, halfW * 2, 1.2).fill({ color: 0x586071 });
+    g.rect(-halfW, y - 0.6, halfW * 2, 0.4).fill({ color: 0x363c4d, alpha: 0.6 });
+    // Insulator strings — 4 strings per arm, 3 discs each
+    for (const xPos of [-halfW + 1.2, -halfW * 0.45, halfW * 0.45, halfW - 1.2]) {
+      for (let d = 0; d < 3; d++) {
+        g.circle(xPos, y + 1.4 + d * 1.2, 0.7).fill({ color: 0xddd6c4 });
+      }
+    }
+  }
+
+  // Peak warning light
+  g.circle(0, -h - 4, 1.5).fill({ color: accent });
+  g.circle(0, -h - 4, 5).fill({ color: accent, alpha: 0.3 });
+}
+
+/** Skyscraper — tall glass tower with grid of lit windows + crown spire. */
+export function drawSkyscraper(g: Graphics, fw: number, fh: number, hTiles: number, faces: FaceColors, accent: number) {
+  drawBox3Face(g, fw, fh, hTiles, faces, accent);
+  const h = hTiles * TILE_H;
+  const { top, right, bottom, left } = footprintDiamond(fw, fh);
+
+  // Dense window grid — 10 floors × 6 columns per face
+  const floors = 10;
+  for (let floor = 0; floor < floors; floor++) {
+    const yMid = -h + (floor + 0.5) * (h / floors);
+    for (let i = 0; i < 6; i++) {
+      const t = 0.08 + i * 0.165;
+      // Left face
+      const lx = lerp(left.x, bottom.x, t);
+      const ly = lerp(left.y, bottom.y, t);
+      const litL = (floor * 5 + i * 3) % 7 < 5;
+      g.rect(lx - 0.9, ly + yMid - 1.2, 1.8, 2.4).fill({ color: litL ? 0xfde68a : 0x0a1322, alpha: 0.9 });
+      // Right face
+      const rx = lerp(bottom.x, right.x, t);
+      const ry = lerp(bottom.y, right.y, t);
+      const litR = (floor * 3 + i * 5) % 7 < 5;
+      g.rect(rx - 0.9, ry + yMid - 1.2, 1.8, 2.4).fill({ color: litR ? 0xfde68a : 0x0a1322, alpha: 0.9 });
+    }
+  }
+
+  // Setback crown — horizontal accent band 80% up
+  const crownY = -h + h * 0.86;
+  g.poly([top.x, top.y + crownY + h, right.x, right.y + crownY + h, bottom.x, bottom.y + crownY + h, left.x, left.y + crownY + h])
+    .stroke({ color: accent, width: 0.6, alpha: 0.6 });
+
+  // Roof outline + parapet
+  g.poly([top.x, top.y - h, right.x, right.y - h, bottom.x, bottom.y - h, left.x, left.y - h])
+    .stroke({ color: accent, width: 0.9, alpha: 0.8 });
+
+  // Antenna spire + red warning strobe
+  g.rect(-0.5, -h - 26, 1, 26).fill({ color: 0x586071 });
+  g.moveTo(-2, -h - 18).lineTo(2, -h - 18).stroke({ color: 0x586071, width: 0.5 });
+  g.circle(0, -h - 26, 2).fill({ color: 0xef4444 }).stroke({ color: 0xffffff, width: 0.3 });
+  g.circle(0, -h - 26, 6).fill({ color: 0xef4444, alpha: 0.3 });
+
+  // Glowing entrance lobby on front face
+  const dx = lerp(bottom.x, right.x, 0.5);
+  const dy = lerp(bottom.y, right.y, 0.5);
+  g.rect(dx - 6, dy - h * 0.07, 12, h * 0.06).fill({ color: 0xfde68a, alpha: 0.85 });
+}
+
+/** Apartment — mid-rise residential with paired windows + balconies + roof tank. */
+export function drawApartment(g: Graphics, fw: number, fh: number, hTiles: number, faces: FaceColors, accent: number) {
+  drawBox3Face(g, fw, fh, hTiles, faces, accent);
+  const h = hTiles * TILE_H;
+  const { top, right, bottom, left } = footprintDiamond(fw, fh);
+
+  const floors = 6;
+  for (let floor = 0; floor < floors; floor++) {
+    const yMid = -h + (floor + 0.5) * (h / floors);
+    // Left face windows + balcony rail
+    for (let i = 0; i < 4; i++) {
+      const t = 0.13 + i * 0.22;
+      const wx = lerp(left.x, bottom.x, t);
+      const wy = lerp(left.y, bottom.y, t);
+      const lit = (floor * 3 + i * 5) % 7 < 4;
+      g.rect(wx - 1.1, wy + yMid - 1.6, 2.2, 3).fill({ color: lit ? 0xfde68a : 0x0a1322, alpha: 0.85 });
+      g.moveTo(wx - 1.6, wy + yMid + 1.5).lineTo(wx + 1.6, wy + yMid + 1.5).stroke({ color: 0x000000, width: 0.5, alpha: 0.55 });
+    }
+    // Right face windows + balcony rail
+    for (let i = 0; i < 4; i++) {
+      const t = 0.13 + i * 0.22;
+      const wx = lerp(bottom.x, right.x, t);
+      const wy = lerp(bottom.y, right.y, t);
+      const lit = (floor * 2 + i * 4) % 7 < 4;
+      g.rect(wx - 1.1, wy + yMid - 1.6, 2.2, 3).fill({ color: lit ? 0xfde68a : 0x0a1322, alpha: 0.85 });
+      g.moveTo(wx - 1.6, wy + yMid + 1.5).lineTo(wx + 1.6, wy + yMid + 1.5).stroke({ color: 0x000000, width: 0.5, alpha: 0.55 });
+    }
+  }
+
+  // Lobby door
+  const dx = lerp(bottom.x, right.x, 0.22);
+  const dy = lerp(bottom.y, right.y, 0.22);
+  g.poly([dx - 2.2, dy, dx + 2.2, dy, dx + 2.2, dy - h * 0.14, dx - 2.2, dy - h * 0.14])
+    .fill({ color: 0x1a1a1a });
+
+  // Flat roof + water tank + satellite dish
+  g.poly([top.x, top.y - h, right.x, right.y - h, bottom.x, bottom.y - h, left.x, left.y - h])
+    .stroke({ color: accent, width: 0.6, alpha: 0.65 });
+  g.rect(-3, -h - 4, 6, 4).fill({ color: 0x4a5468 });
+  g.rect(-3, -h - 4, 6, 1).fill({ color: accent, alpha: 0.5 });
+  g.circle(4, -h - 2, 1.6).fill({ color: 0xddd6c4 });
+}
+
+/** Office Block — curtain wall facade with horizontal glass bands. */
+export function drawOfficeBlock(g: Graphics, fw: number, fh: number, hTiles: number, faces: FaceColors, accent: number) {
+  drawBox3Face(g, fw, fh, hTiles, faces, accent);
+  const h = hTiles * TILE_H;
+  const { top, right, bottom, left } = footprintDiamond(fw, fh);
+
+  const floors = 4;
+  for (let floor = 0; floor < floors; floor++) {
+    const yMid = -h + (floor + 0.5) * (h / floors);
+    // Left face — continuous glass band
+    const lx1 = lerp(left.x, bottom.x, 0.05);
+    const ly1 = lerp(left.y, bottom.y, 0.05);
+    const lx2 = lerp(left.x, bottom.x, 0.95);
+    const ly2 = lerp(left.y, bottom.y, 0.95);
+    g.poly([lx1, ly1 + yMid - 2, lx2, ly2 + yMid - 2, lx2, ly2 + yMid + 1.8, lx1, ly1 + yMid + 1.8])
+      .fill({ color: 0x60a5fa, alpha: 0.4 });
+    // Right face
+    const rx1 = lerp(bottom.x, right.x, 0.05);
+    const ry1 = lerp(bottom.y, right.y, 0.05);
+    const rx2 = lerp(bottom.x, right.x, 0.95);
+    const ry2 = lerp(bottom.y, right.y, 0.95);
+    g.poly([rx1, ry1 + yMid - 2, rx2, ry2 + yMid - 2, rx2, ry2 + yMid + 1.8, rx1, ry1 + yMid + 1.8])
+      .fill({ color: 0x60a5fa, alpha: 0.4 });
+  }
+
+  // Vertical mullions (suggests individual office bays)
+  for (let i = 1; i < 7; i++) {
+    const t = i / 7;
+    const lx = lerp(left.x, bottom.x, t);
+    const ly = lerp(left.y, bottom.y, t);
+    g.moveTo(lx, ly - h).lineTo(lx, ly).stroke({ color: 0x000000, width: 0.4, alpha: 0.55 });
+    const rx = lerp(bottom.x, right.x, t);
+    const ry = lerp(bottom.y, right.y, t);
+    g.moveTo(rx, ry - h).lineTo(rx, ry).stroke({ color: 0x000000, width: 0.4, alpha: 0.55 });
+  }
+
+  // Lobby on front face
+  const dx = lerp(bottom.x, right.x, 0.32);
+  const dy = lerp(bottom.y, right.y, 0.32);
+  g.rect(dx - 5, dy - h * 0.22, 10, h * 0.22).fill({ color: 0x1a1a1a, alpha: 0.85 });
+  g.rect(dx - 5, dy - h * 0.04, 10, 1).fill({ color: accent, alpha: 0.85 });
+
+  // Roof edge accent
+  g.poly([top.x, top.y - h, right.x, right.y - h, bottom.x, bottom.y - h, left.x, left.y - h])
+    .stroke({ color: accent, width: 0.6, alpha: 0.6 });
+}
+
+/** Shop — small storefront with awning + display window. */
+export function drawShop(g: Graphics, fw: number, fh: number, hTiles: number, faces: FaceColors, accent: number) {
+  drawBox3Face(g, fw, fh, hTiles, faces, accent);
+  const h = hTiles * TILE_H;
+  const { bottom, right } = footprintDiamond(fw, fh);
+
+  // Awning over the front face
+  const ax1 = lerp(bottom.x, right.x, 0.1);
+  const ay1 = lerp(bottom.y, right.y, 0.1);
+  const ax2 = lerp(bottom.x, right.x, 0.9);
+  const ay2 = lerp(bottom.y, right.y, 0.9);
+  g.poly([
+    ax1, ay1 - h * 0.45,
+    ax2, ay2 - h * 0.45,
+    ax2 + 2, ay2 - h * 0.62,
+    ax1 - 2, ay1 - h * 0.62,
+  ]).fill({ color: accent, alpha: 0.85 });
+
+  // Storefront window
+  g.poly([
+    ax1, ay1 - h * 0.38,
+    ax2, ay2 - h * 0.38,
+    ax2, ay2 - h * 0.1,
+    ax1, ay1 - h * 0.1,
+  ]).fill({ color: 0xfde68a, alpha: 0.7 });
+
+  // Door on the front
+  const dx = lerp(bottom.x, right.x, 0.6);
+  const dy = lerp(bottom.y, right.y, 0.6);
+  g.rect(dx - 1.3, dy - h * 0.32, 2.6, h * 0.32).fill({ color: 0x1a1a1a });
+}
+
+/** Warehouse — long industrial shed with pitched roof + loading docks. */
+export function drawWarehouse(g: Graphics, fw: number, fh: number, hTiles: number, faces: FaceColors, accent: number) {
+  drawBox3Face(g, fw, fh, hTiles, faces, accent);
+  const h = hTiles * TILE_H;
+  const { top, right, bottom, left } = footprintDiamond(fw, fh);
+
+  // Corrugated lines across top face along the long axis
+  const longCount = Math.max(fw, fh) * 3 + 1;
+  for (let i = 1; i < longCount; i++) {
+    const t = i / longCount;
+    if (fw >= fh) {
+      const ax = lerp(left.x, top.x, t);
+      const ay = lerp(left.y, top.y, t) - h;
+      const bx = lerp(bottom.x, right.x, t);
+      const by = lerp(bottom.y, right.y, t) - h;
+      g.moveTo(ax, ay).lineTo(bx, by).stroke({ color: 0x000000, width: 0.3, alpha: 0.4 });
+    } else {
+      const ax = lerp(top.x, right.x, t);
+      const ay = lerp(top.y, right.y, t) - h;
+      const bx = lerp(left.x, bottom.x, t);
+      const by = lerp(left.y, bottom.y, t) - h;
+      g.moveTo(ax, ay).lineTo(bx, by).stroke({ color: 0x000000, width: 0.3, alpha: 0.4 });
+    }
+  }
+
+  // Loading dock doors on the front (bottom-right) face
+  const doorCount = Math.max(2, Math.min(4, Math.max(fw, fh)));
+  for (let i = 0; i < doorCount; i++) {
+    const t = 0.12 + i * (0.76 / Math.max(1, doorCount - 1));
+    const dx = lerp(bottom.x, right.x, t);
+    const dy = lerp(bottom.y, right.y, t);
+    g.poly([dx - 3, dy, dx + 3, dy, dx + 3, dy - h * 0.7, dx - 3, dy - h * 0.7])
+      .fill({ color: 0x1a1a1a });
+    g.poly([dx - 3, dy, dx + 3, dy, dx + 3, dy - h * 0.7, dx - 3, dy - h * 0.7])
+      .stroke({ color: accent, width: 0.4, alpha: 0.55 });
+  }
+
+  // Sign band on left face
+  const sx1 = lerp(left.x, bottom.x, 0.2);
+  const sy1 = lerp(left.y, bottom.y, 0.2);
+  const sx2 = lerp(left.x, bottom.x, 0.8);
+  const sy2 = lerp(left.y, bottom.y, 0.8);
+  g.poly([sx1, sy1 - h * 0.78, sx2, sy2 - h * 0.78, sx2, sy2 - h * 0.62, sx1, sy1 - h * 0.62])
+    .fill({ color: accent, alpha: 0.85 });
+
+  // Rooftop vents
+  for (let i = 0; i < 3; i++) {
+    const t = 0.25 + i * 0.25;
+    const cx = lerp(left.x, right.x, t);
+    const cy = lerp(left.y, right.y, t);
+    g.rect(cx - 1.5, cy - h - 3, 3, 3).fill({ color: 0x4a5468 });
+    g.circle(cx, cy - h - 3, 1).fill({ color: 0x1a1a1a });
+  }
+}
+
 /** Met tower — thin mast with sensor head + anemometer arms. */
 export function drawTower(g: Graphics, accent: number) {
   // Concrete base
@@ -291,6 +753,33 @@ export function drawStructure(g: Graphics, kind: StructureKind, accentOverride?:
       return;
     case "tower":
       drawTower(g, accent);
+      return;
+    case "comm_tower":
+      drawCommTower(g, accent);
+      return;
+    case "power_pylon":
+      drawPowerPylon(g, accent);
+      return;
+    case "control_building":
+      drawControlBuilding(g, def.footprint.w, def.footprint.h, def.height, def.faces, accent);
+      return;
+    case "substation":
+      drawSubstation(g, def.footprint.w, def.footprint.h, def.height, def.faces, accent);
+      return;
+    case "warehouse":
+      drawWarehouse(g, def.footprint.w, def.footprint.h, def.height, def.faces, accent);
+      return;
+    case "skyscraper":
+      drawSkyscraper(g, def.footprint.w, def.footprint.h, def.height, def.faces, accent);
+      return;
+    case "apartment":
+      drawApartment(g, def.footprint.w, def.footprint.h, def.height, def.faces, accent);
+      return;
+    case "office_block":
+      drawOfficeBlock(g, def.footprint.w, def.footprint.h, def.height, def.faces, accent);
+      return;
+    case "shop":
+      drawShop(g, def.footprint.w, def.footprint.h, def.height, def.faces, accent);
       return;
     case "tree":
       drawTree(g);

@@ -24,6 +24,17 @@ export type StructureKind =
   | "meter"
   | "depot"
   | "combiner"
+  // Heavy infrastructure / city buildings
+  | "control_building"
+  | "substation"
+  | "comm_tower"
+  | "power_pylon"
+  | "warehouse"
+  // Urban buildings
+  | "skyscraper"
+  | "apartment"
+  | "office_block"
+  | "shop"
   // Decoration / infrastructure
   | "tree"
   | "bollard"
@@ -227,6 +238,108 @@ export const STRUCTURE_DEFS: Record<StructureKind, StructureDef> = {
     swatch: "#2a3142",
     linkable: true,
     tagDefault: "CMB",
+  },
+  control_building: {
+    id: "control_building",
+    label: "Control Building",
+    category: "structure",
+    footprint: { w: 2, h: 2 },
+    height: 2.5,
+    faces: { top: 0x32445e, left: 0x1b2638, right: 0x44597a },
+    accent: 0x60a5fa,
+    swatch: "#32445e",
+    linkable: true,
+    tagDefault: "CTRL",
+  },
+  substation: {
+    id: "substation",
+    label: "Substation",
+    category: "structure",
+    footprint: { w: 3, h: 3 },
+    height: 1.4,
+    faces: { top: 0x3a4256, left: 0x1f2535, right: 0x4a5468 },
+    accent: 0xeab308,
+    swatch: "#3a4256",
+    linkable: true,
+    tagDefault: "SUBSTN",
+  },
+  comm_tower: {
+    id: "comm_tower",
+    label: "Comm Tower",
+    category: "structure",
+    footprint: { w: 1, h: 1 },
+    height: 4.0,
+    faces: { top: 0x4a5066, left: 0x2c3142, right: 0x5e667e },
+    accent: 0xef4444,
+    swatch: "#4a5066",
+    linkable: true,
+    tagDefault: "COMM",
+  },
+  power_pylon: {
+    id: "power_pylon",
+    label: "Power Pylon",
+    category: "structure",
+    footprint: { w: 1, h: 1 },
+    height: 3.5,
+    faces: { top: 0x4a5066, left: 0x2c3142, right: 0x5e667e },
+    accent: 0xfbbf24,
+    swatch: "#4a5066",
+    tagDefault: "HV·400",
+  },
+  warehouse: {
+    id: "warehouse",
+    label: "Warehouse",
+    category: "structure",
+    footprint: { w: 3, h: 2 },
+    height: 1.0,
+    faces: { top: 0x3d4a5e, left: 0x232c3e, right: 0x4a5872 },
+    accent: 0xddc07a,
+    swatch: "#3d4a5e",
+    tagDefault: "WHSE",
+  },
+  skyscraper: {
+    id: "skyscraper",
+    label: "Skyscraper",
+    category: "structure",
+    footprint: { w: 2, h: 2 },
+    height: 5.0,
+    faces: { top: 0x223558, left: 0x0d1530, right: 0x37507a },
+    accent: 0x60a5fa,
+    swatch: "#223558",
+    tagDefault: "TOWER",
+  },
+  apartment: {
+    id: "apartment",
+    label: "Apartment",
+    category: "structure",
+    footprint: { w: 2, h: 2 },
+    height: 3.0,
+    faces: { top: 0x4f3a2a, left: 0x301f15, right: 0x6a513c },
+    accent: 0xddc07a,
+    swatch: "#4f3a2a",
+    tagDefault: "RES",
+  },
+  office_block: {
+    id: "office_block",
+    label: "Office Block",
+    category: "structure",
+    footprint: { w: 3, h: 2 },
+    height: 2.0,
+    faces: { top: 0x2a3a56, left: 0x141d36, right: 0x405578 },
+    accent: 0x38bdf8,
+    swatch: "#2a3a56",
+    tagDefault: "OFFICE",
+  },
+  shop: {
+    id: "shop",
+    label: "Shop",
+    category: "structure",
+    footprint: { w: 1, h: 1 },
+    height: 0.7,
+    faces: { top: 0x4a3520, left: 0x2c1f12, right: 0x6a5238 },
+    accent: 0xfbbf24,
+    swatch: "#4a3520",
+    tagDefault: "SHOP",
   },
   tree: {
     id: "tree",
