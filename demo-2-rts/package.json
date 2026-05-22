@@ -19,12 +19,16 @@
     "lucide-react": "^1.16.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.6.0",
-    "class-variance-authority": "^0.7.1"
+    "class-variance-authority": "^0.7.1",
+    "three": "^0.184.0",
+    "@react-three/fiber": "^9.6.1",
+    "@react-three/drei": "^10.7.7"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.184.1",
     "typescript": "^5.9.3",
     "tailwindcss": "^4.3.0",
     "@tailwindcss/postcss": "^4.3.0",
