@@ -24,15 +24,27 @@ const PLANTS: Plant[] = [
   { id: "johor",  name: "Johor-Commercial",  cap: "1,160 kWp",  capMW: 1.160, status: "normal"   },
 ];
 
-/** 5 plants laid out across the 4 quadrants of the park, with Penang
- *  (the only "critical" plant) up top so the pulse ring reads from the
- *  main camera angle. */
+/* ─── World grid ──────────────────────────────────────────────
+   Road network — a 3-ring grid:
+     • Main highway cross  (x=0, z=0; width 12)
+     • Inner ring          (x=±45, z=±45; width 7)
+     • Mid ring            (x=±90, z=±90; width 6)
+
+   Each structure lives inside ONE block with ≥7m of green
+   setback to the nearest road edge. Block centres are:
+     - Inner blocks:        x=±25,  z=±25
+     - Mid-N/S blocks:      x=±25,  z=±67   (and ±25, ±67)
+     - Mid-W/E blocks:      x=±67,  z=±25
+     - Outer corners:       x=±125, z=±125
+*/
+
+/** 5 plants spread one per mid-outer block. Penang is mid-N (critical). */
 const PLANT_POS: Record<string, [number, number, number]> = {
-  kedah:  [-60, 0, -55],
-  penang: [  0, 0, -75],
-  perak:  [ 60, 0, -55],
-  melaka: [-60, 0,  55],
-  johor:  [ 60, 0,  55],
+  kedah:  [-67, 0, -25],   // M-W-N
+  penang: [ 25, 0, -67],   // M-N-NE  (critical — visible from default camera)
+  perak:  [ 67, 0, -25],   // M-E-N
+  melaka: [-67, 0,  25],   // M-W-S
+  johor:  [ 67, 0,  25],   // M-E-S
 };
 
 interface Props {
@@ -46,34 +58,36 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
       <Canvas
         shadows
         dpr={[1, 2]}
-        camera={{ position: [0, 80, 130], fov: 36, near: 0.1, far: 600 }}
+        camera={{ position: [0, 105, 160], fov: 36, near: 0.1, far: 700 }}
         gl={{ antialias: true }}
       >
         <hemisphereLight args={["#dceaf6", "#cfd7e0", 0.85]} />
         <ambientLight intensity={0.35} />
-        <directionalLight position={[40, 80, 30]} intensity={1.6} castShadow />
+        <directionalLight position={[40, 90, 30]} intensity={1.6} castShadow />
         <color attach="background" args={["#e9eef6"]} />
 
         {/* Ground + subtle grid */}
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[600, 600]} />
+          <planeGeometry args={[700, 700]} />
           <meshStandardMaterial color="#eef3f8" roughness={1} />
         </mesh>
-        <gridHelper args={[600, 60, "#cbd6e2", "#dde6f0"]} position={[0, 0.01, 0]} />
+        <gridHelper args={[700, 70, "#cbd6e2", "#dde6f0"]} position={[0, 0.01, 0]} />
 
-        {/* Roads first so structures sit on top of asphalt edges */}
+        {/* Road grid (laid down first so structures clearly sit inside blocks) */}
         <RoadNetwork />
 
-        {/* Central energy generation block — the visual heart of the park */}
-        <CoolingTowers position={[-22, 0, 18]} />
-        <PowerHouse    position={[ 14, 0, 18]} />
-        <Substation    position={[-22, 0, -18]} />
-        <OilTankFarm   position={[ 28, 0, -18]} />
-        <BatteryBank   position={[  0, 0,  38]} />
-        <ControlBuilding position={[ 0, 0, -38]} />
-        <AdminTower    position={[-38, 0, 0]} />
+        {/* ─── Inner ring (4 blocks, central energy facility) ─── */}
+        <Substation     position={[-25, 0, -25]} />   {/* I-NW */}
+        <OilTankFarm    position={[ 25, 0, -25]} />   {/* I-NE */}
+        <AdminTower     position={[-25, 0,  25]} />   {/* I-SW */}
+        <PowerHouse     position={[ 25, 0,  25]} />   {/* I-SE */}
 
-        {/* Plants — one per quadrant + Penang at north */}
+        {/* ─── Mid ring (8 blocks: 4 plants on W/E, plus auxiliaries N/S) ─── */}
+        <CoolingTowers   position={[-25, 0, -67]} />  {/* M-N-NW */}
+        <BatteryBank     position={[-25, 0,  67]} />  {/* M-S-SW */}
+        <ControlBuilding position={[ 25, 0,  67]} />  {/* M-S-SE */}
+
+        {/* Plants — one per remaining mid-outer block */}
         {PLANTS.map((p) => (
           <PlantCluster
             key={p.id}
@@ -84,32 +98,40 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
           />
         ))}
 
-        {/* Solar fields — spaced wide along the outer ring */}
-        <SolarFarm origin={[-95, 0,  -8]} cols={8} rows={5} />
-        <SolarFarm origin={[ 95, 0,  -8]} cols={8} rows={5} />
-        <SolarFarm origin={[-30, 0,  82]} cols={10} rows={4} />
-        <SolarFarm origin={[ 30, 0,  82]} cols={10} rows={4} />
+        {/* ─── Solar fields (well beyond the mid ring) ─── */}
+        <SolarFarm origin={[-50, 0, -130]} cols={10} rows={4} />
+        <SolarFarm origin={[ 50, 0, -130]} cols={10} rows={4} />
+        <SolarFarm origin={[-50, 0,  130]} cols={10} rows={4} />
+        <SolarFarm origin={[ 50, 0,  130]} cols={10} rows={4} />
+        <SolarFarm origin={[-135, 0, -50]} cols={6} rows={8} />
+        <SolarFarm origin={[ 135, 0, -50]} cols={6} rows={8} />
+        <SolarFarm origin={[-135, 0,  50]} cols={6} rows={8} />
+        <SolarFarm origin={[ 135, 0,  50]} cols={6} rows={8} />
 
-        {/* Wind farms — far edges of the park */}
-        <WindFarm origin={[-95, 0, -85]} count={3} />
-        <WindFarm origin={[ 95, 0, -85]} count={3} />
-        <WindFarm origin={[-95, 0,  85]} count={3} />
-        <WindFarm origin={[ 95, 0,  85]} count={3} />
+        {/* ─── Wind farms (extreme corners) ─── */}
+        <WindFarm origin={[-145, 0, -145]} count={3} />
+        <WindFarm origin={[ 145, 0, -145]} count={3} />
+        <WindFarm origin={[-145, 0,  145]} count={3} />
+        <WindFarm origin={[ 145, 0,  145]} count={3} />
 
-        {/* Transmission line — alternating pylons along the southern boundary */}
-        {[-90, -60, -30, 0, 30, 60, 90].map((x) => (
-          <TxTower key={`tx-s-${x}`} position={[x, 0, 100]} />
+        {/* ─── Transmission line — south edge ─── */}
+        {[-130, -90, -50, -10, 30, 70, 110].map((x) => (
+          <TxTower key={`tx-s-${x}`} position={[x, 0, 110]} />
+        ))}
+        {/* and another row along the north edge */}
+        {[-130, -90, -50, -10, 30, 70, 110].map((x) => (
+          <TxTower key={`tx-n-${x}`} position={[x, 0, -110]} />
         ))}
 
-        {/* Roadside trees & boundary fence */}
+        {/* Landscaping */}
         <RoadsideTrees />
-        <BoundaryFence radius={115} />
+        <BoundaryFence radius={170} />
 
         <OrbitControls
           target={[0, 4, 0]}
           enableDamping
-          minDistance={45}
-          maxDistance={210}
+          minDistance={55}
+          maxDistance={260}
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI / 2.4}
           autoRotate={!selectedPlantId}
@@ -121,27 +143,24 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
 }
 
 /* ============================================================
-   Road network — main highways + branch loops, all just thin
-   dark planes with a yellow centre stripe so they read at glance.
+   Road network — 3 concentric rings of asphalt with centre stripes
    ============================================================ */
 function RoadNetwork() {
   return (
     <group>
-      {/* Main E-W highway (z=0) */}
-      <Road x={0} z={0} length={240} width={12} horizontal />
-      {/* Main N-S highway (x=0) */}
-      <Road x={0} z={0} length={210} width={12} horizontal={false} />
-      {/* Inner ring — N branch (along z=-40) */}
-      <Road x={0} z={-40} length={190} width={7} horizontal />
-      {/* Inner ring — S branch (along z=40) */}
-      <Road x={0} z={40} length={190} width={7} horizontal />
-      {/* Inner ring — W branch (along x=-40) */}
-      <Road x={-40} z={0} length={150} width={7} horizontal={false} />
-      {/* Inner ring — E branch (along x=40) */}
-      <Road x={40} z={0} length={150} width={7} horizontal={false} />
-      {/* Outer perimeter loop — south + north service road */}
-      <Road x={0} z={ 95} length={220} width={6} horizontal />
-      <Road x={0} z={-95} length={220} width={6} horizontal />
+      {/* Main highway cross */}
+      <Road x={0}   z={0}   length={260} width={12} horizontal />
+      <Road x={0}   z={0}   length={260} width={12} horizontal={false} />
+      {/* Inner ring */}
+      <Road x={0}   z={-45} length={220} width={7}  horizontal />
+      <Road x={0}   z={ 45} length={220} width={7}  horizontal />
+      <Road x={-45} z={0}   length={220} width={7}  horizontal={false} />
+      <Road x={ 45} z={0}   length={220} width={7}  horizontal={false} />
+      {/* Mid ring */}
+      <Road x={0}   z={-90} length={260} width={6}  horizontal />
+      <Road x={0}   z={ 90} length={260} width={6}  horizontal />
+      <Road x={-90} z={0}   length={260} width={6}  horizontal={false} />
+      <Road x={ 90} z={0}   length={260} width={6}  horizontal={false} />
     </group>
   );
 }
@@ -164,27 +183,37 @@ function Road({ x, z, length, width, horizontal }: {
         <meshStandardMaterial color="#facc15" />
       </mesh>
       {/* shoulder lines */}
-      <mesh
-        position={[0, 0.005, horizontal ? d / 2 - 0.4 : 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <planeGeometry args={[horizontal ? w * 0.985 : 0.1, horizontal ? 0.1 : d * 0.985]} />
-        <meshStandardMaterial color="#e5e7eb" />
-      </mesh>
-      <mesh
-        position={[horizontal ? 0 : w / 2 - 0.4, 0.005, horizontal ? -d / 2 + 0.4 : 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <planeGeometry args={[horizontal ? w * 0.985 : 0.1, horizontal ? 0.1 : d * 0.985]} />
-        <meshStandardMaterial color="#e5e7eb" />
-      </mesh>
+      {horizontal ? (
+        <>
+          <mesh position={[0, 0.005,  d / 2 - 0.4]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[w * 0.985, 0.1]} />
+            <meshStandardMaterial color="#e5e7eb" />
+          </mesh>
+          <mesh position={[0, 0.005, -d / 2 + 0.4]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[w * 0.985, 0.1]} />
+            <meshStandardMaterial color="#e5e7eb" />
+          </mesh>
+        </>
+      ) : (
+        <>
+          <mesh position={[ w / 2 - 0.4, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.1, d * 0.985]} />
+            <meshStandardMaterial color="#e5e7eb" />
+          </mesh>
+          <mesh position={[-w / 2 + 0.4, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.1, d * 0.985]} />
+            <meshStandardMaterial color="#e5e7eb" />
+          </mesh>
+        </>
+      )}
     </group>
   );
 }
 
 /* ============================================================
-   PlantCluster — the canonical solar plant "card":
-   round paved pad, PV array, inverter hut, control hut, pin.
+   PlantCluster — round paved pad + mini PV array + huts + pin
+   (Pad radius 9, so a 25-unit-from-axis centre clears any
+    width-7 inner-ring road by 11.5m and any width-6 mid road by 9m.)
    ============================================================ */
 function PlantCluster({ plant, position, selected, onSelect }: {
   plant: Plant; position: [number, number, number]; selected: boolean; onSelect: () => void;
@@ -263,141 +292,143 @@ function PulseRing() {
 }
 
 /* ============================================================
-   Power-station primitives
+   Power-station primitives — every footprint ≤ 22×14 so a
+   25-unit-from-axis centre clears every road in the grid.
    ============================================================ */
 
 /** Two cooling towers — hyperboloid silhouette via latheGeometry. */
 function CoolingTowers({ position }: { position: [number, number, number] }) {
   const profile = useMemo(() => {
     const pts: THREE.Vector2[] = [];
-    pts.push(new THREE.Vector2(3.8, 0.0));
-    pts.push(new THREE.Vector2(3.3, 1.6));
-    pts.push(new THREE.Vector2(2.7, 3.6));
-    pts.push(new THREE.Vector2(2.4, 6.0));
-    pts.push(new THREE.Vector2(2.5, 8.4));
-    pts.push(new THREE.Vector2(2.8, 10.6));
-    pts.push(new THREE.Vector2(3.1, 12.4));
+    pts.push(new THREE.Vector2(3.6, 0.0));
+    pts.push(new THREE.Vector2(3.1, 1.6));
+    pts.push(new THREE.Vector2(2.6, 3.6));
+    pts.push(new THREE.Vector2(2.3, 6.0));
+    pts.push(new THREE.Vector2(2.4, 8.4));
+    pts.push(new THREE.Vector2(2.7, 10.6));
+    pts.push(new THREE.Vector2(3.0, 12.2));
     return pts;
   }, []);
   return (
     <group position={position}>
       {/* concrete pad */}
-      <mesh receiveShadow position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[20, 12]} />
+      <mesh receiveShadow position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[18, 11]} />
         <meshStandardMaterial color="#9aa6b4" roughness={1} />
       </mesh>
-      {[-5, 5].map((dx, i) => (
+      {[-4.2, 4.2].map((dx, i) => (
         <group key={i} position={[dx, 0, 0]}>
           <mesh castShadow receiveShadow>
             <latheGeometry args={[profile, 32]} />
             <meshStandardMaterial color="#d6deeb" roughness={0.85} side={THREE.DoubleSide} />
           </mesh>
           {/* steam wisp */}
-          <mesh position={[0, 13.6, 0]}>
-            <sphereGeometry args={[1.5, 12, 12]} />
+          <mesh position={[0, 13.4, 0]}>
+            <sphereGeometry args={[1.4, 12, 12]} />
             <meshStandardMaterial color="#e2e8f0" transparent opacity={0.55} roughness={1} />
           </mesh>
-          <mesh position={[0.7, 14.6, 0.3]}>
-            <sphereGeometry args={[1.1, 10, 10]} />
+          <mesh position={[0.7, 14.4, 0.3]}>
+            <sphereGeometry args={[1.0, 10, 10]} />
             <meshStandardMaterial color="#e2e8f0" transparent opacity={0.4} roughness={1} />
           </mesh>
         </group>
       ))}
-      <Html position={[0, 15.5, 0]} center distanceFactor={22}>
+      <Html position={[0, 15.2, 0]} center distanceFactor={22}>
         <SceneLabel>Cooling Towers</SceneLabel>
       </Html>
     </group>
   );
 }
 
-/** Powerhouse block — main turbine hall with two smokestacks. */
+/** Powerhouse block — turbine hall with two smokestacks. */
 function PowerHouse({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh receiveShadow position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[20, 14]} />
+      <mesh receiveShadow position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[20, 13]} />
         <meshStandardMaterial color="#9aa6b4" roughness={1} />
       </mesh>
       {/* turbine hall */}
       <mesh position={[0, 3.5, 0]} castShadow receiveShadow>
-        <boxGeometry args={[16, 7, 10]} />
+        <boxGeometry args={[16, 7, 9]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.85} />
       </mesh>
       {/* roof ridge */}
       <mesh position={[0, 7.2, 0]}>
-        <boxGeometry args={[16.2, 0.4, 10.2]} />
+        <boxGeometry args={[16.2, 0.4, 9.2]} />
         <meshStandardMaterial color="#64748b" />
       </mesh>
       {/* window strip */}
       <mesh position={[0, 4.6, 0]}>
-        <boxGeometry args={[16.05, 0.6, 10.05]} />
+        <boxGeometry args={[16.05, 0.6, 9.05]} />
         <meshStandardMaterial color="#7fa6d6" emissive="#83b3e4" emissiveIntensity={0.3} />
       </mesh>
-      {/* two smokestacks */}
+      {/* two smokestacks behind the hall */}
       {[-5, 5].map((dx, i) => (
-        <group key={i} position={[dx, 0, -3]}>
+        <group key={i} position={[dx, 0, -2.8]}>
           <mesh position={[0, 8, 0]} castShadow>
             <cylinderGeometry args={[0.7, 0.9, 16, 14]} />
             <meshStandardMaterial color="#a8a29e" roughness={0.95} />
           </mesh>
-          {/* red safety band near top */}
           <mesh position={[0, 14.5, 0]}>
             <cylinderGeometry args={[0.72, 0.72, 0.8, 14]} />
             <meshStandardMaterial color="#b91c1c" />
           </mesh>
-          {/* lazy steam */}
-          <mesh position={[0, 16.4, 0]}>
+          <mesh position={[0, 16.3, 0]}>
             <sphereGeometry args={[1.0, 12, 12]} />
             <meshStandardMaterial color="#e2e8f0" transparent opacity={0.55} />
           </mesh>
         </group>
       ))}
+      <Html position={[0, 9.5, 0]} center distanceFactor={22}>
+        <SceneLabel>Powerhouse</SceneLabel>
+      </Html>
     </group>
   );
 }
 
-/** Substation — pad with transformer banks and bus-bar pylons. */
+/** Substation — gravel pad with transformer banks + bus-bar pylons. */
 function Substation({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      {/* gravel pad */}
-      <mesh receiveShadow position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[22, 14]} />
+      <mesh receiveShadow position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[20, 12]} />
         <meshStandardMaterial color="#a8b1c0" roughness={1} />
       </mesh>
-      {/* fence posts */}
-      {[[-10.5, -6.5], [-10.5, 6.5], [10.5, -6.5], [10.5, 6.5], [0, -6.5], [0, 6.5]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 1.1, z]}>
-          <cylinderGeometry args={[0.1, 0.1, 2.2, 6]} />
-          <meshStandardMaterial color="#6b7280" />
-        </mesh>
-      ))}
+      {/* fence posts around the perimeter */}
+      {[[-9.5, -5.5], [-9.5, 5.5], [9.5, -5.5], [9.5, 5.5], [0, -5.5], [0, 5.5]].map(
+        ([x, z], i) => (
+          <mesh key={i} position={[x, 1.1, z]}>
+            <cylinderGeometry args={[0.1, 0.1, 2.2, 6]} />
+            <meshStandardMaterial color="#6b7280" />
+          </mesh>
+        ),
+      )}
       {/* transformer banks */}
-      {[-6, 0, 6].map((x, i) => (
+      {[-5, 0, 5].map((x, i) => (
         <group key={i} position={[x, 0, 0]}>
           <mesh position={[0, 1.2, 0]} castShadow receiveShadow>
-            <boxGeometry args={[3, 2.4, 3]} />
+            <boxGeometry args={[2.6, 2.4, 2.6]} />
             <meshStandardMaterial color="#475569" metalness={0.45} roughness={0.5} />
           </mesh>
-          {/* cooling fins on the side */}
-          <mesh position={[1.7, 1.2, 0]}>
-            <boxGeometry args={[0.4, 2, 2.5]} />
+          <mesh position={[1.55, 1.2, 0]}>
+            <boxGeometry args={[0.4, 2, 2.2]} />
             <meshStandardMaterial color="#334155" />
           </mesh>
-          <mesh position={[-1.7, 1.2, 0]}>
-            <boxGeometry args={[0.4, 2, 2.5]} />
+          <mesh position={[-1.55, 1.2, 0]}>
+            <boxGeometry args={[0.4, 2, 2.2]} />
             <meshStandardMaterial color="#334155" />
           </mesh>
           {/* insulator stack */}
-          {[-0.9, 0, 0.9].map((dx, j) => (
+          {[-0.8, 0, 0.8].map((dx, j) => (
             <group key={j} position={[dx, 2.4, 0]}>
               <mesh position={[0, 0.9, 0]}>
-                <cylinderGeometry args={[0.14, 0.14, 1.8, 8]} />
+                <cylinderGeometry args={[0.13, 0.13, 1.8, 8]} />
                 <meshStandardMaterial color="#cbd5e1" />
               </mesh>
               {[0.4, 0.9, 1.4].map((y, k) => (
                 <mesh key={k} position={[0, y, 0]}>
-                  <torusGeometry args={[0.2, 0.05, 6, 16]} />
+                  <torusGeometry args={[0.19, 0.05, 6, 16]} />
                   <meshStandardMaterial color="#94a3b8" />
                 </mesh>
               ))}
@@ -405,8 +436,8 @@ function Substation({ position }: { position: [number, number, number] }) {
           ))}
         </group>
       ))}
-      {/* a pair of bus-bar pylons (mini lattice) */}
-      {[-9, 9].map((x, i) => (
+      {/* a pair of mini lattice pylons feeding the bus bars */}
+      {[-8, 8].map((x, i) => (
         <group key={i} position={[x, 0, 0]}>
           <mesh position={[0, 3, 0]}>
             <cylinderGeometry args={[0.08, 0.12, 6, 6]} />
@@ -427,7 +458,7 @@ function Substation({ position }: { position: [number, number, number] }) {
   );
 }
 
-/** Oil/fuel tank farm — five cylindrical white tanks with domed caps. */
+/** Oil/fuel tank farm — 5 cylindrical tanks with domed caps. */
 function OilTankFarm({ position }: { position: [number, number, number] }) {
   const tanks: [number, number][] = [
     [-6, -3], [0, -3], [6, -3],
@@ -435,28 +466,25 @@ function OilTankFarm({ position }: { position: [number, number, number] }) {
   ];
   return (
     <group position={position}>
-      <mesh receiveShadow position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[22, 14]} />
+      <mesh receiveShadow position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[20, 13]} />
         <meshStandardMaterial color="#a8b1c0" roughness={1} />
       </mesh>
       {tanks.map(([x, z], i) => (
         <group key={i} position={[x, 0, z]}>
           <mesh position={[0, 2.4, 0]} castShadow receiveShadow>
-            <cylinderGeometry args={[2.1, 2.1, 4.8, 24]} />
+            <cylinderGeometry args={[2.0, 2.0, 4.8, 24]} />
             <meshStandardMaterial color="#e9eef4" metalness={0.45} roughness={0.5} />
           </mesh>
-          {/* dome cap */}
           <mesh position={[0, 4.8, 0]} castShadow>
-            <sphereGeometry args={[2.1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <sphereGeometry args={[2.0, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
             <meshStandardMaterial color="#cdd5e0" metalness={0.4} roughness={0.55} />
           </mesh>
-          {/* horizontal seam */}
           <mesh position={[0, 2.4, 0]}>
-            <cylinderGeometry args={[2.11, 2.11, 0.18, 24]} />
+            <cylinderGeometry args={[2.01, 2.01, 0.18, 24]} />
             <meshStandardMaterial color="#94a3b8" />
           </mesh>
-          {/* ladder */}
-          <mesh position={[2.1, 2.4, 0]}>
+          <mesh position={[2.0, 2.4, 0]}>
             <boxGeometry args={[0.05, 4.8, 0.25]} />
             <meshStandardMaterial color="#475569" />
           </mesh>
@@ -469,12 +497,12 @@ function OilTankFarm({ position }: { position: [number, number, number] }) {
   );
 }
 
-/** Battery storage — a row of container-style BESS units. */
+/** Battery storage — row of container-style BESS units. */
 function BatteryBank({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      <mesh receiveShadow position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[20, 6]} />
+      <mesh receiveShadow position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[20, 8]} />
         <meshStandardMaterial color="#a8b1c0" roughness={1} />
       </mesh>
       {[-7, -2.5, 2.5, 7].map((x, i) => (
@@ -483,12 +511,10 @@ function BatteryBank({ position }: { position: [number, number, number] }) {
             <boxGeometry args={[3.6, 2.6, 2.2]} />
             <meshStandardMaterial color={i % 2 ? "#cbd6e2" : "#4f76a5"} metalness={0.35} roughness={0.55} />
           </mesh>
-          {/* HVAC roof unit */}
           <mesh position={[0, 2.75, 0]}>
             <boxGeometry args={[1.4, 0.3, 1.4]} />
             <meshStandardMaterial color="#94a3b8" />
           </mesh>
-          {/* door panel */}
           <mesh position={[0, 1.2, 1.11]}>
             <boxGeometry args={[1.4, 1.6, 0.02]} />
             <meshStandardMaterial color="#1e293b" />
@@ -506,22 +532,27 @@ function BatteryBank({ position }: { position: [number, number, number] }) {
 function ControlBuilding({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
+      {/* pad */}
+      <mesh receiveShadow position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[16, 11]} />
+        <meshStandardMaterial color="#c5cdd9" roughness={1} />
+      </mesh>
       <mesh position={[0, 2.6, 0]} castShadow receiveShadow>
-        <boxGeometry args={[12, 5.2, 7]} />
+        <boxGeometry args={[11, 5.2, 7]} />
         <meshStandardMaterial color="#eef3f8" roughness={0.7} />
       </mesh>
       <mesh position={[0, 5.3, 0]}>
-        <boxGeometry args={[12.2, 0.4, 7.2]} />
+        <boxGeometry args={[11.2, 0.4, 7.2]} />
         <meshStandardMaterial color="#475569" />
       </mesh>
       {[1.3, 3.7].map((y) => (
         <mesh key={y} position={[0, y, 0]}>
-          <boxGeometry args={[12.05, 0.55, 7.05]} />
+          <boxGeometry args={[11.05, 0.55, 7.05]} />
           <meshStandardMaterial color="#7fa6d6" emissive="#83b3e4" emissiveIntensity={0.3} />
         </mesh>
       ))}
       {/* entrance canopy */}
-      <mesh position={[6.4, 1.2, 0]} castShadow>
+      <mesh position={[5.9, 1.2, 0]} castShadow>
         <boxGeometry args={[0.8, 0.2, 3]} />
         <meshStandardMaterial color="#cbd5e1" />
       </mesh>
@@ -532,12 +563,12 @@ function ControlBuilding({ position }: { position: [number, number, number] }) {
   );
 }
 
-/** Admin tower — slim glass tower for the central HQ. */
+/** Admin tower — slim glass tower with a circular plaza pad. */
 function AdminTower({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
       <mesh receiveShadow position={[0, 0.3, 0]}>
-        <cylinderGeometry args={[5, 5, 0.6, 32]} />
+        <cylinderGeometry args={[6, 6, 0.6, 32]} />
         <meshStandardMaterial color="#dde6f0" roughness={0.95} />
       </mesh>
       <mesh position={[0, 7.5, 0]} castShadow receiveShadow>
@@ -562,14 +593,12 @@ function AdminTower({ position }: { position: [number, number, number] }) {
 }
 
 /* ============================================================
-   Reusables (kept from the previous scene, simplified)
+   Reusables — solar/wind/tx
    ============================================================ */
-
 function SolarFarm({ origin, cols, rows }: { origin: [number, number, number]; cols: number; rows: number }) {
   const sp = 1.4;
   return (
     <group position={origin}>
-      {/* base pad slightly darker than ground */}
       <mesh receiveShadow position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[cols * sp + 1.5, rows * sp + 1.5]} />
         <meshStandardMaterial color="#dde6f0" roughness={1} />
@@ -645,22 +674,31 @@ function TxTower({ position }: { position: [number, number, number] }) {
   );
 }
 
-/* Thin tree avenue along the main highways — sparse, just enough
-   to read as landscaping. */
+/** Sparse tree avenue along every road in the grid — but ONLY where
+ *  trees won't collide with a block's pad. Trees sit on the verge
+ *  ~5m off the road centre, every ~22m. */
 function RoadsideTrees() {
   const positions = useMemo<[number, number][]>(() => {
     const out: [number, number][] = [];
-    // along main E-W highway (z=0), trees at z=±9, every 22m
-    for (let x = -110; x <= 110; x += 22) {
-      if (Math.abs(x) < 14) continue;
-      out.push([x, -9]);
-      out.push([x,  9]);
+    const ROADS_H = [0, -45, 45, -90, 90];     // horizontal roads
+    const ROADS_V = [0, -45, 45, -90, 90];     // vertical roads
+    const verge = 7;
+
+    for (const zRoad of ROADS_H) {
+      for (let x = -135; x <= 135; x += 22) {
+        // skip intersections
+        if (ROADS_V.some((v) => Math.abs(x - v) < 9)) continue;
+        // skip block centres where structures live
+        if (isBlockOccupied(x, zRoad - verge) === false) out.push([x, zRoad - verge]);
+        if (isBlockOccupied(x, zRoad + verge) === false) out.push([x, zRoad + verge]);
+      }
     }
-    // along main N-S highway (x=0)
-    for (let z = -95; z <= 95; z += 22) {
-      if (Math.abs(z) < 14) continue;
-      out.push([-9, z]);
-      out.push([ 9, z]);
+    for (const xRoad of ROADS_V) {
+      for (let z = -135; z <= 135; z += 22) {
+        if (ROADS_H.some((h) => Math.abs(z - h) < 9)) continue;
+        if (isBlockOccupied(xRoad - verge, z) === false) out.push([xRoad - verge, z]);
+        if (isBlockOccupied(xRoad + verge, z) === false) out.push([xRoad + verge, z]);
+      }
     }
     return out;
   }, []);
@@ -682,12 +720,37 @@ function RoadsideTrees() {
   );
 }
 
+/** Returns true when (x,z) is inside one of the structure pads so a
+ *  roadside tree wouldn't make sense there. */
+function isBlockOccupied(x: number, z: number): boolean {
+  const pads: { cx: number; cz: number; w: number; d: number }[] = [
+    // inner ring
+    { cx: -25, cz: -25, w: 20, d: 12 }, // substation
+    { cx:  25, cz: -25, w: 20, d: 13 }, // oil tanks
+    { cx: -25, cz:  25, w: 12, d: 12 }, // admin tower
+    { cx:  25, cz:  25, w: 20, d: 13 }, // powerhouse
+    // mid ring auxiliaries
+    { cx: -25, cz: -67, w: 18, d: 11 }, // cooling
+    { cx: -25, cz:  67, w: 20, d:  8 }, // battery
+    { cx:  25, cz:  67, w: 16, d: 11 }, // control
+    // plants (radius 9)
+    { cx: -67, cz: -25, w: 18, d: 18 },
+    { cx:  25, cz: -67, w: 18, d: 18 },
+    { cx:  67, cz: -25, w: 18, d: 18 },
+    { cx: -67, cz:  25, w: 18, d: 18 },
+    { cx:  67, cz:  25, w: 18, d: 18 },
+  ];
+  return pads.some(
+    (p) => Math.abs(x - p.cx) < p.w / 2 + 1 && Math.abs(z - p.cz) < p.d / 2 + 1,
+  );
+}
+
 /** Subtle boundary fence so the park has a perimeter feel. */
 function BoundaryFence({ radius }: { radius: number }) {
   const posts = useMemo(() => {
     const out: [number, number][] = [];
-    const step = (Math.PI * 2) / 80;
-    for (let i = 0; i < 80; i++) {
+    const step = (Math.PI * 2) / 96;
+    for (let i = 0; i < 96; i++) {
       const a = i * step;
       out.push([Math.cos(a) * radius, Math.sin(a) * radius]);
     }
