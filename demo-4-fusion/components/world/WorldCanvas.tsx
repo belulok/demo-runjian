@@ -1,49 +1,62 @@
 "use client";
 
-import { Scene3D, type Plant } from "./Scene3D";
+import { useEffect, useState } from "react";
 import { useWorldStore } from "@/lib/store/worldStore";
-import { DEVICES } from "@/lib/mock/devices";
-import { useState } from "react";
-
-/** Map the 3D scene's plant ids (kedah/penang/…) to demo-2's plant ids
- *  so the existing DetailPanel / device store has a real selection. */
-const PLANT_ID_MAP: Record<string, string> = {
-  kedah:  "PLT-KDH-001",
-  penang: "PLT-PNG-001",
-  perak:  "PLT-PRK-001",
-  melaka: "PLT-MLK-001",
-  johor:  "PLT-JHR-001",
-};
+import { PRIMARY_PLANT_ID } from "@/lib/mock/plants";
+import { PLANT_POIS, PV_PARAMS, type ScenePOI } from "@/lib/mock/scenePOIs";
+import { STATION_BY_PLANT_ID } from "@/lib/mock/stations";
+import { Scene3D } from "./Scene3D";
+import { PVPlantScene } from "./PVPlantScene";
 
 /**
- * Demo-2's world layer — now a 3D R/F scene ported from demo-3.
- * The Pixi isometric "building" map has been retired in favour of
- * the 3D-ish overhead city. All other demo-2 HUD/overlay panels
- * keep working unchanged.
+ * Per-sector scene dispatcher.
+ *
+ * Johor (PRIMARY_PLANT_ID) → Sohar Scene3D (the existing hand-modelled scene).
+ * All other sectors → procedural PVPlantScene parameterised from PV_PARAMS.
+ *
+ * Clicking a POI no longer opens the right-side DetailPanel — it surfaces the
+ * in-scene popover card (rendered inside the scene component) and just tracks
+ * which POI is open locally.
  */
 export function WorldCanvas() {
-  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
-  const selectDevice = useWorldStore((s) => s.selectDevice);
+  const activePlantId = useWorldStore((s) => s.activePlantId);
+  const selectStation = useWorldStore((s) => s.selectStation);
+  const [selectedPoiId, setSelectedPoiId] = useState<string | null>(null);
 
-  const onSelectPlant = (p: Plant | null) => {
-    setSelectedPlantId(p ? p.id : null);
-    if (!p) {
-      selectDevice(null);
-      return;
+  const pois: ScenePOI[] = PLANT_POIS[activePlantId] ?? [];
+
+  const handleSelect = (poi: ScenePOI | null) => {
+    setSelectedPoiId(poi?.id ?? null);
+    // POI click → also open the station team brief for the active plant's
+    // station. Each plant maps to exactly one station.
+    if (poi) {
+      const station = STATION_BY_PLANT_ID[activePlantId];
+      if (station) selectStation(station.id);
     }
-    const demoPlantId = PLANT_ID_MAP[p.id];
-    const match = demoPlantId
-      ? DEVICES.find((d) => d.plantId === demoPlantId)
-      : null;
-    selectDevice(match ? match.id : null);
   };
+
+  // Reset POI popover whenever the active plant changes.
+  useEffect(() => {
+    setSelectedPoiId(null);
+  }, [activePlantId]);
 
   return (
     <div className="absolute inset-0 world-3d-host">
-      <Scene3D
-        selectedPlantId={selectedPlantId}
-        onSelectPlant={onSelectPlant}
-      />
+      {activePlantId === PRIMARY_PLANT_ID ? (
+        <Scene3D
+          pois={pois}
+          selectedPoiId={selectedPoiId}
+          onSelectPoi={handleSelect}
+        />
+      ) : (
+        <PVPlantScene
+          key={activePlantId}
+          params={PV_PARAMS[activePlantId]}
+          pois={pois}
+          selectedPoiId={selectedPoiId}
+          onSelectPoi={handleSelect}
+        />
+      )}
     </div>
   );
 }
