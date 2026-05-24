@@ -76,6 +76,10 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
         <InternalRoadGrid />
         <GateConnector />
 
+        {/* Tunnel portals where the access road enters the east + west mountain ranges */}
+        <TunnelPortal position={[ 320, 0, 110]} dir={1}  />
+        <TunnelPortal position={[-320, 0, 110]} dir={-1} />
+
         {/* ── Site boundary (tree-lined fence with a gap at the gate) ── */}
         <SiteBoundary halfW={137} halfD={92.5} gateX={-5} gateGap={8} />
 
@@ -155,20 +159,24 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
    ROADS
    ============================================================ */
 
-/** Big east-west "Plant Main Access Road" just south of the site fence. */
+/** Big east-west "Plant Main Access Road" just south of the site fence.
+ *  Extends all the way through the east and west mountain ranges via
+ *  tunnel portals. */
 function PlantAccessRoad() {
+  const ROAD_LEN = 700;
+  const DASH_COUNT = 116;
   return (
     <group position={[0, 0.10, 110]}>
       {/* asphalt */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[340, 14]} />
+        <planeGeometry args={[ROAD_LEN, 14]} />
         <meshStandardMaterial color="#2d333f" roughness={0.96} />
       </mesh>
       {/* dashed centre line — lifted clear of the asphalt */}
-      {Array.from({ length: 56 }).map((_, i) => (
+      {Array.from({ length: DASH_COUNT }).map((_, i) => (
         <mesh
           key={i}
-          position={[-160 + i * 6, 0.06, 0]}
+          position={[-ROAD_LEN / 2 + 5 + i * 6, 0.06, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
         >
           <planeGeometry args={[3, 0.25]} />
@@ -178,10 +186,73 @@ function PlantAccessRoad() {
       {/* shoulder lines */}
       {[6.5, -6.5].map((z) => (
         <mesh key={z} position={[0, 0.06, z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[338, 0.18]} />
+          <planeGeometry args={[ROAD_LEN - 2, 0.18]} />
           <meshStandardMaterial color="#e5e7eb" />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+/** Concrete tunnel portal — sits where the access road enters a
+ *  mountain. Has a chunky concrete archway frame and a dark interior
+ *  that extends back into the mountain mass. */
+function TunnelPortal({ position, dir }: {
+  position: [number, number, number];
+  /** +1 → tunnel extends in +x direction; -1 → in -x direction. */
+  dir: 1 | -1;
+}) {
+  const PW = 18;   // portal width  (z axis)
+  const PH = 7.5;  // portal height (y axis)
+  const PD = 22;   // tunnel depth  (x axis)
+  return (
+    <group position={position}>
+      {/* Concrete header beam */}
+      <mesh position={[dir * 0.6, PH + 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.4, 1.8, PW + 2.6]} />
+        <meshStandardMaterial color="#9ca3af" roughness={0.95} />
+      </mesh>
+      {/* Decorative ridge cap on top */}
+      <mesh position={[dir * 0.4, PH + 1.95, 0]}>
+        <boxGeometry args={[2.0, 0.4, PW + 1.4]} />
+        <meshStandardMaterial color="#6b7280" />
+      </mesh>
+      {/* Side pillars */}
+      {[-1, 1].map((side) => (
+        <mesh
+          key={side}
+          position={[dir * 0.6, PH / 2, side * (PW / 2 + 0.7)]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[2.4, PH, 1.4]} />
+          <meshStandardMaterial color="#9ca3af" roughness={0.95} />
+        </mesh>
+      ))}
+      {/* Plinth at the bottom of each pillar */}
+      {[-1, 1].map((side) => (
+        <mesh
+          key={`plinth-${side}`}
+          position={[dir * 0.6, 0.6, side * (PW / 2 + 0.7)]}
+        >
+          <boxGeometry args={[2.6, 1.2, 1.6]} />
+          <meshStandardMaterial color="#6b7280" />
+        </mesh>
+      ))}
+      {/* Dark tunnel interior — extends back into the mountain */}
+      <mesh position={[dir * (PD / 2 + 1.5), PH / 2 - 0.4, 0]}>
+        <boxGeometry args={[PD, PH - 0.8, PW - 0.5]} />
+        <meshStandardMaterial color="#0a0a0a" />
+      </mesh>
+      {/* Warm interior light strip suggesting tunnel lighting */}
+      <mesh position={[dir * 5, PH - 0.6, 0]}>
+        <boxGeometry args={[0.3, 0.3, PW - 1]} />
+        <meshStandardMaterial color="#fb923c" emissive="#fb923c" emissiveIntensity={0.85} />
+      </mesh>
+      <mesh position={[dir * 12, PH - 0.6, 0]}>
+        <boxGeometry args={[0.3, 0.3, PW - 1]} />
+        <meshStandardMaterial color="#fb923c" emissive="#fb923c" emissiveIntensity={0.85} />
+      </mesh>
     </group>
   );
 }
@@ -1150,18 +1221,20 @@ function PulseRing() {
  *  All values were chosen to sit inside the asphalt lanes drawn by
  *  InternalRoadGrid + PlantAccessRoad + GateConnector. */
 
-/** External access road — closed loop: eastbound at z=107, westbound at z=113 */
+/** External access road — closed loop spanning both tunnel mouths.
+ *  Eastbound lane at z=107 (heading east from west tunnel toward east tunnel),
+ *  westbound lane at z=113. Vehicles are hidden once they cross into the
+ *  tunnel interior (|x| > 318) so they appear to enter/exit the mountain. */
 const ACCESS_LOOP: [number, number][] = [
-  [-185, 107], [-100, 107], [0, 107], [100, 107], [185, 107],
-  [185, 113], [100, 113], [0, 113], [-100, 113], [-185, 113],
+  [-340, 107], [-200, 107], [-100, 107], [0, 107], [100, 107], [200, 107], [340, 107],
+  [340, 113], [200, 113], [100, 113], [0, 113], [-100, 113], [-200, 113], [-340, 113],
 ];
 
-/** Arrival loop — eastbound on access → in through gate → clockwise
- *  inside-perimeter loop → out through gate → westbound on access.
- *  Uses lane-offset connector lanes (x=-7 inbound, x=-3 outbound) so
- *  the curve never reverses on itself. */
-const GATE_TOUR: [number, number][] = [
-  [-185, 107], [-100, 107], [-30, 107],
+/** Arrival loop — appears from west tunnel → eastbound on access road
+ *  → in through gate → clockwise inside-perimeter loop → out through
+ *  gate → westbound back to west tunnel. */
+const GATE_TOUR_W: [number, number][] = [
+  [-340, 107], [-200, 107], [-100, 107], [-30, 107],
   // Inbound through gate
   [-7, 105], [-7, 95], [-7, 85],
   // South perimeter eastbound
@@ -1176,8 +1249,43 @@ const GATE_TOUR: [number, number][] = [
   [-75, 85], [-25, 85],
   // Outbound through gate
   [-3, 85], [-3, 95], [-3, 105],
-  // Westbound back along access road
-  [-30, 113], [-100, 113], [-185, 113],
+  // Westbound back along access road, into west tunnel
+  [-30, 113], [-100, 113], [-200, 113], [-340, 113],
+];
+
+/** Mirror of GATE_TOUR_W coming from the east tunnel — appears from
+ *  east tunnel → westbound → into gate → counter-clockwise inner loop
+ *  → out gate → eastbound back into east tunnel. */
+const GATE_TOUR_E: [number, number][] = [
+  [340, 113], [200, 113], [100, 113], [30, 113],
+  // Inbound through gate (using lane closer to centre when arriving from east)
+  [-3, 111], [-3, 95], [-3, 85],
+  // South perimeter westbound
+  [-25, 85], [-75, 85], [-126, 85],
+  // West perimeter northbound
+  [-126, 45], [-126, 0], [-126, -45], [-126, -85],
+  // North perimeter eastbound
+  [-75, -85], [-25, -85], [25, -85], [80, -85], [126, -85],
+  // East perimeter southbound
+  [126, -45], [126, 0], [126, 45], [126, 85],
+  // South perimeter back to gate
+  [80, 85], [25, 85],
+  // Outbound through gate
+  [-7, 85], [-7, 95], [-7, 109],
+  // Eastbound back along access road, into east tunnel
+  [30, 107], [100, 107], [200, 107], [340, 107],
+];
+
+/** A short in-and-out — arrives via west tunnel, drops by the warehouse
+ *  area, leaves via west tunnel. Used by service trucks. */
+const DELIVERY_LOOP: [number, number][] = [
+  [-340, 107], [-200, 107], [-100, 107], [-30, 107],
+  [-7, 105], [-7, 95], [-7, 85],
+  // Visit the warehouse / wastewater area
+  [-25, 85], [-25, 55], [25, 55], [25, 85],
+  // Exit
+  [-3, 85], [-3, 95], [-3, 105],
+  [-30, 113], [-100, 113], [-200, 113], [-340, 113],
 ];
 
 /** Inner perimeter loop, clockwise. Lane offset 2 from road centreline. */
@@ -1219,14 +1327,25 @@ const MAINT_LOOP: [number, number][] = [
 function Vehicles() {
   return (
     <>
-      {/* External through-traffic on the access road */}
-      <Vehicle path={ACCESS_LOOP} speed={0.013} color="#f8fafc" kind="car" phase={0.00} />
-      <Vehicle path={ACCESS_LOOP} speed={0.013} color="#3b82f6" kind="car" phase={0.35} />
-      <Vehicle path={ACCESS_LOOP} speed={0.013} color="#dc2626" kind="car" phase={0.70} />
+      {/* External through-traffic on the access road — enters one tunnel,
+       *  drives across, exits the other. tunnelHide=true makes the car
+       *  invisible while inside the mountain. */}
+      <Vehicle path={ACCESS_LOOP} speed={0.0055} color="#f8fafc" kind="car" phase={0.00} tunnelHide />
+      <Vehicle path={ACCESS_LOOP} speed={0.0055} color="#3b82f6" kind="car" phase={0.18} tunnelHide />
+      <Vehicle path={ACCESS_LOOP} speed={0.0055} color="#dc2626" kind="car" phase={0.36} tunnelHide />
+      <Vehicle path={ACCESS_LOOP} speed={0.0055} color="#10b981" kind="van" phase={0.54} tunnelHide />
+      <Vehicle path={ACCESS_LOOP} speed={0.0055} color="#1f2937" kind="car" phase={0.72} tunnelHide />
 
-      {/* Arriving / departing — through the gate and around inside perimeter */}
-      <Vehicle path={GATE_TOUR} speed={0.0035} color="#fbbf24" kind="truck" phase={0.00} />
-      <Vehicle path={GATE_TOUR} speed={0.0035} color="#06b6d4" kind="van"   phase={0.55} />
+      {/* Arriving from west tunnel — through gate, clockwise inside, out west */}
+      <Vehicle path={GATE_TOUR_W} speed={0.0025} color="#fbbf24" kind="truck" phase={0.00} tunnelHide />
+      <Vehicle path={GATE_TOUR_W} speed={0.0025} color="#06b6d4" kind="van"   phase={0.50} tunnelHide />
+
+      {/* Arriving from east tunnel — through gate, counter-clockwise inside, out east */}
+      <Vehicle path={GATE_TOUR_E} speed={0.0025} color="#f97316" kind="van"   phase={0.25} tunnelHide />
+      <Vehicle path={GATE_TOUR_E} speed={0.0025} color="#a855f7" kind="car"   phase={0.75} tunnelHide />
+
+      {/* Delivery truck — quick warehouse visit and out */}
+      <Vehicle path={DELIVERY_LOOP} speed={0.0042} color="#dc2626" kind="truck" phase={0.30} tunnelHide />
 
       {/* Inside perimeter patrol — opposite directions */}
       <Vehicle path={PERIMETER_CW}  speed={0.007} color="#10b981" kind="van" phase={0.10} />
@@ -1244,12 +1363,15 @@ function Vehicles() {
 
 type VehicleKind = "car" | "van" | "truck";
 
-function Vehicle({ path, speed, color, kind = "car", phase = 0 }: {
+function Vehicle({ path, speed, color, kind = "car", phase = 0, tunnelHide = false }: {
   path: [number, number][];
   speed: number;
   color: string;
   kind?: VehicleKind;
   phase?: number;
+  /** Hide the vehicle when it crosses into the mountain tunnel
+   *  (|x| > 318), so it visually disappears into the portal. */
+  tunnelHide?: boolean;
 }) {
   const ref = useRef<THREE.Group>(null);
   const curve = useMemo(() => {
@@ -1266,6 +1388,9 @@ function Vehicle({ path, speed, color, kind = "car", phase = 0 }: {
     // lookAt aligns the object's local -Z with the tangent, so build
     // each vehicle body with its "front" at -Z.
     ref.current.lookAt(pos.x + tan.x, pos.y, pos.z + tan.z);
+    if (tunnelHide) {
+      ref.current.visible = Math.abs(pos.x) < 318;
+    }
   });
 
   return (
@@ -1491,6 +1616,16 @@ function Mountains() {
       const scale = 40 + rand() * 32;
       out.push({ p: [x, 0, z], s: scale, seed: counter++ });
     }
+
+    // Dedicated tunnel-anchor mountains — extra-large, positioned right
+    // where the access road meets each mountain range, so the dark tunnel
+    // interior is hidden by mountain mass instead of empty sky.
+    out.push({ p: [ 348, 0, 110], s: 95, seed: counter++ });
+    out.push({ p: [-348, 0, 110], s: 95, seed: counter++ });
+    out.push({ p: [ 360, 0,  90], s: 70, seed: counter++ });
+    out.push({ p: [ 360, 0, 130], s: 70, seed: counter++ });
+    out.push({ p: [-360, 0,  90], s: 70, seed: counter++ });
+    out.push({ p: [-360, 0, 130], s: 70, seed: counter++ });
     return out;
   }, []);
 
