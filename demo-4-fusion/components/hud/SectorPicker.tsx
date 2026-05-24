@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { useWorldStore } from "@/lib/store/worldStore";
-import { useLayoutStore } from "@/lib/store/layoutStore";
 import { PLANTS, PRIMARY_PLANT_ID, type Plant } from "@/lib/mock/plants";
+import { STATION_BY_PLANT_ID, STATION_TYPE_LABEL } from "@/lib/mock/stations";
 import { STATE_COLORS } from "@/lib/theme/colors";
 import { cn } from "@/lib/utils";
 
@@ -21,16 +21,24 @@ const STATUS_COLOR = (s: Plant["status"]) =>
 export function SectorPicker() {
   const activeId = useWorldStore((s) => s.activePlantId);
   const setActive = useWorldStore((s) => s.setActivePlant);
-  const switchToPlant = useLayoutStore((s) => s.switchToPlant);
+  const selectStation = useWorldStore((s) => s.selectStation);
+  const panToWorld = useWorldStore((s) => s.panToWorld);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const active = PLANTS.find((p) => p.id === activeId) ?? PLANTS[0];
+  const activeStation = STATION_BY_PLANT_ID[activeId];
 
+  /** Fast-travel: pan the 3D camera to the station and open its brief. The
+   *  world itself doesn't reload — there's a single unified scene now. */
   const handleSelect = (id: string) => {
     setActive(id);
-    switchToPlant(id);
     setOpen(false);
+    const station = STATION_BY_PLANT_ID[id];
+    if (station) {
+      panToWorld(station.pos[0], station.pos[2]);
+      selectStation(station.id);
+    }
   };
 
   // Close on outside click
@@ -60,7 +68,7 @@ export function SectorPicker() {
         />
         <span className="flex flex-col items-start leading-tight">
           <span className="font-display text-[10px] uppercase tracking-[0.32em] text-text-secondary">
-            Active Sector
+            {activeStation ? STATION_TYPE_LABEL[activeStation.type] : "Active Sector"}
           </span>
           <span className="font-display text-[15px] uppercase tracking-[0.24em] text-text-primary">
             {active.name}
@@ -95,6 +103,7 @@ export function SectorPicker() {
                 {PLANTS.map((p) => {
                   const isActive = p.id === activeId;
                   const isPrimary = p.id === PRIMARY_PLANT_ID;
+                  const station = STATION_BY_PLANT_ID[p.id];
                   return (
                     <button
                       key={p.id}
@@ -118,8 +127,15 @@ export function SectorPicker() {
                           </span>
                           <span className="font-mono text-[9px] text-text-muted">{p.oem}</span>
                         </div>
-                        <div className="font-mono text-[10px] text-text-muted">
-                          {p.region}, MY · {p.capacityKWp.toFixed(0)} kWp
+                        <div className="flex items-center gap-2">
+                          {station && (
+                            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--color-gold-rim)]">
+                              {STATION_TYPE_LABEL[station.type]}
+                            </span>
+                          )}
+                          <span className="font-mono text-[10px] text-text-muted">
+                            {p.region} · {p.capacityKWp.toFixed(0)} kWp
+                          </span>
                         </div>
                       </div>
                       {isPrimary && (
@@ -138,7 +154,7 @@ export function SectorPicker() {
                 })}
               </div>
               <div className="px-3 py-2 border-t border-[var(--color-rule)] text-[10px] text-text-muted font-condensed">
-                Each sector has its own world. Switching reloads the map.
+                Picking a sector pans the camera to its station and opens the team brief.
               </div>
             </div>
           </motion.div>

@@ -1,48 +1,34 @@
 "use client";
 
-import { Scene3D, type Plant } from "./Scene3D";
 import { useWorldStore } from "@/lib/store/worldStore";
-import { DEVICES } from "@/lib/mock/devices";
-import { useState } from "react";
-
-/** Map the 3D scene's plant ids (kedah/penang/…) to demo-2's plant ids
- *  so the existing DetailPanel / device store has a real selection. */
-const PLANT_ID_MAP: Record<string, string> = {
-  kedah:  "PLT-KDH-001",
-  penang: "PLT-PNG-001",
-  perak:  "PLT-PRK-001",
-  melaka: "PLT-MLK-001",
-  johor:  "PLT-JHR-001",
-};
+import { STATION_BY_PLANT_ID, type Station } from "@/lib/mock/stations";
+import { WorldScene } from "./WorldScene";
 
 /**
- * Demo-2's world layer — now a 3D R/F scene ported from demo-3.
- * The Pixi isometric "building" map has been retired in favour of
- * the 3D-ish overhead city. All other demo-2 HUD/overlay panels
- * keep working unchanged.
+ * Single unified SimCity-style world. Per-sector scene dispatch was removed —
+ * every plant now lives as a station inside this one world. activePlantId
+ * is still used to highlight which station is the "active" one (driven from
+ * the SectorPicker), but the scene itself does not change.
+ *
+ * Station click → selectStation(stationId) → StationTeamBrief slides up.
  */
 export function WorldCanvas() {
-  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
-  const selectDevice = useWorldStore((s) => s.selectDevice);
+  const activePlantId = useWorldStore((s) => s.activePlantId);
+  const selectedStationId = useWorldStore((s) => s.selectedStationId);
+  const selectStation = useWorldStore((s) => s.selectStation);
 
-  const onSelectPlant = (p: Plant | null) => {
-    setSelectedPlantId(p ? p.id : null);
-    if (!p) {
-      selectDevice(null);
-      return;
-    }
-    const demoPlantId = PLANT_ID_MAP[p.id];
-    const match = demoPlantId
-      ? DEVICES.find((d) => d.plantId === demoPlantId)
-      : null;
-    selectDevice(match ? match.id : null);
+  const activeStation = STATION_BY_PLANT_ID[activePlantId] ?? null;
+
+  const handleSelect = (station: Station) => {
+    selectStation(station.id);
   };
 
   return (
     <div className="absolute inset-0 world-3d-host">
-      <Scene3D
-        selectedPlantId={selectedPlantId}
-        onSelectPlant={onSelectPlant}
+      <WorldScene
+        selectedStationId={selectedStationId}
+        activeStationId={activeStation?.id ?? null}
+        onSelectStation={handleSelect}
       />
     </div>
   );

@@ -8,7 +8,7 @@ import { SEED_WORK_ORDERS } from "@/lib/mock/workOrders";
 import { AGENTS } from "@/lib/mock/agents";
 import { useAlertStore } from "@/lib/store/alertStore";
 import { useWorldStore } from "@/lib/store/worldStore";
-import { useLayoutStore } from "@/lib/store/layoutStore";
+import { STATION_BY_PLANT_ID } from "@/lib/mock/stations";
 import { useCommandStore, type CommandSheetId } from "@/lib/store/commandStore";
 import { AGENT_COLORS } from "@/lib/theme/colors";
 import { OrnateTitle } from "@/components/primitives/OrnateTitle";
@@ -45,7 +45,8 @@ export function SearchSheet() {
   const alarms = useAlertStore((s) => s.alarms);
   const setActive = useWorldStore((s) => s.setActivePlant);
   const selectDevice = useWorldStore((s) => s.selectDevice);
-  const switchToPlant = useLayoutStore((s) => s.switchToPlant);
+  const panToWorld = useWorldStore((s) => s.panToWorld);
+  const selectStation = useWorldStore((s) => s.selectStation);
   const closeSheet = useCommandStore((s) => s.close);
   const openSheet = useCommandStore((s) => s.open);
 
@@ -119,7 +120,11 @@ export function SearchSheet() {
           glyph: "◆",
           onSelect: () => {
             setActive(p.id);
-            switchToPlant(p.id);
+            const station = STATION_BY_PLANT_ID[p.id];
+            if (station) {
+              panToWorld(station.pos[0], station.pos[2]);
+              selectStation(station.id);
+            }
             closeSheet();
           },
         });
@@ -141,10 +146,7 @@ export function SearchSheet() {
           onSelect: () => {
             const plantId = d.plantId;
             const wantsSwitch = useWorldStore.getState().activePlantId !== plantId;
-            if (wantsSwitch) {
-              setActive(plantId);
-              switchToPlant(plantId);
-            }
+            if (wantsSwitch) setActive(plantId);
             selectDevice(d.id);
             closeSheet();
           },
@@ -214,7 +216,7 @@ export function SearchSheet() {
     }
 
     return out;
-  }, [query, alarms, openSheet, setActive, selectDevice, switchToPlant, closeSheet]);
+  }, [query, alarms, openSheet, setActive, selectDevice, panToWorld, selectStation, closeSheet]);
 
   // Group by kind
   const grouped = useMemo(() => {

@@ -61,7 +61,7 @@ export function CommandSheet() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 60, opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="absolute left-3 right-3 bottom-[192px] z-40 pointer-events-auto"
+          className="absolute left-3 right-[244px] bottom-3 z-40 pointer-events-auto"
         >
           <SheetContents id={active} onClose={close} />
         </motion.div>

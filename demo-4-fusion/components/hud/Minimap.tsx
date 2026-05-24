@@ -1,140 +1,175 @@
 "use client";
 
-import { useMemo, useRef, type MouseEvent } from "react";
-import { useWorldStore } from "@/lib/store/worldStore";
-import { useLayoutStore } from "@/lib/store/layoutStore";
-import { PLANT_BY_ID } from "@/lib/mock/plants";
 import {
-  STRUCTURE_DEFS,
-  GROUND_DEFS,
-  type StructureKind,
-  type GroundKind,
-} from "@/components/world/isometric/tileKinds";
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
+} from "react";
+import { useWorldStore } from "@/lib/store/worldStore";
+import {
+  STATIONS,
+  STATION_BY_PLANT_ID,
+  STATION_TYPE_LABEL,
+  STATION_TYPE_TINT,
+  WORLD_BOUNDS,
+} from "@/lib/mock/stations";
 import { OrnateTitle } from "@/components/primitives/OrnateTitle";
 
 /**
- * Sector minimap — top-down iso projection of the CURRENT plant's layout.
- * Each structure renders as a small filled diamond in its kind colour.
- * The buildable ground (concrete pad, asphalt road, water, sand) renders as
- * a low-contrast background so the user can read the plant footprint at a
- * glance. Click anywhere on the minimap to pan the main camera to that cell.
+ * Top-down minimap bound to the unified SimCity world.
+ *  - Drag → pan the minimap viewport.
+ *  - Wheel → zoom around cursor.
+ *  - Click (no drag) → pan the 3D camera to that world (x, z).
+ *  - Click a station dot → also pans + opens the StationTeamBrief panel.
  */
+const PADDING = 30;
+const DRAG_THRESHOLD = 5;
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 6;
+
 export function Minimap() {
   const activeId = useWorldStore((s) => s.activePlantId);
-  const panToCell = useWorldStore((s) => s.panToCell);
   const cameraView = useWorldStore((s) => s.cameraView);
-  const structures = useLayoutStore((s) => s.layout.structures);
-  const tiles = useLayoutStore((s) => s.layout.tiles);
+  const panToWorld = useWorldStore((s) => s.panToWorld);
+  const selectStation = useWorldStore((s) => s.selectStation);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const active = PLANT_BY_ID[activeId];
+  const activeStation = STATION_BY_PLANT_ID[activeId];
 
-  const { viewBox, projectCell, invertProject, tileSize } = useMemo(() => {
-    // Find the bbox of structures + explicit ground tiles to set the viewport
-    let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity;
-    for (const s of structures) {
-      const def = STRUCTURE_DEFS[s.kind];
-      if (s.col < minC) minC = s.col;
-      if (s.row < minR) minR = s.row;
-      if (s.col + def.footprint.w - 1 > maxC) maxC = s.col + def.footprint.w - 1;
-      if (s.row + def.footprint.h - 1 > maxR) maxR = s.row + def.footprint.h - 1;
-    }
-    for (const key of tiles.keys()) {
-      const [cs, rs] = key.split(",");
-      const c = Number(cs);
-      const r = Number(rs);
-      if (c < minC) minC = c;
-      if (r < minR) minR = r;
-      if (c > maxC) maxC = c;
-      if (r > maxR) maxR = r;
-    }
-    if (!isFinite(minC)) {
-      minC = 0; minR = 0; maxC = 16; maxR = 16;
-    }
-    // Expand bbox to include the live camera viewport so the rectangle is
-    // always visible even when the user pans far away.
-    if (cameraView) {
-      if (cameraView.minCol < minC) minC = cameraView.minCol;
-      if (cameraView.minRow < minR) minR = cameraView.minRow;
-      if (cameraView.maxCol > maxC) maxC = cameraView.maxCol;
-      if (cameraView.maxRow > maxR) maxR = cameraView.maxRow;
-    }
-    // Pad bbox a bit so structures don't sit on the very edge
-    const padCells = 3;
-    minC -= padCells; minR -= padCells; maxC += padCells; maxR += padCells;
-
-    // Iso projection (top-down) with TILE_W=4, TILE_H=2 (small minimap units)
-    const TW = 4;
-    const TH = 2;
-    const project = (col: number, row: number) => ({
-      x: (col - row) * (TW / 2),
-      y: (col + row) * (TH / 2),
-    });
-    // Compute projected bbox
-    const corners = [
-      project(minC, minR),
-      project(maxC, minR),
-      project(maxC, maxR),
-      project(minC, maxR),
-    ];
-    const minX = Math.min(...corners.map((p) => p.x)) - TW / 2;
-    const maxX = Math.max(...corners.map((p) => p.x)) + TW / 2;
-    const minY = Math.min(...corners.map((p) => p.y)) - TH / 2;
-    const maxY = Math.max(...corners.map((p) => p.y)) + TH / 2;
-    const bbW = maxX - minX;
-    const bbH = maxY - minY;
-
+  // Base viewport — full world bounds with padding
+  const base = useMemo(() => {
+    const b = WORLD_BOUNDS;
     return {
-      viewBox: `${minX} ${minY} ${bbW} ${bbH}`,
-      projectCell: project,
-      invertProject: (px: number, py: number) => ({
-        col: Math.round(px / TW + py / TH),
-        row: Math.round(py / TH - px / TW),
-      }),
-      tileSize: { w: TW, h: TH },
+      minX: b.minX - PADDING,
+      minZ: b.minZ - PADDING,
+      width: b.maxX - b.minX + PADDING * 2,
+      height: b.maxZ - b.minZ + PADDING * 2,
     };
-  }, [structures, tiles, cameraView]);
+  }, []);
 
-  // Viewport rectangle (4 iso-projected corners of the visible cell rect)
-  const viewportPolygon = useMemo(() => {
-    if (!cameraView) return null;
-    const { minCol, maxCol, minRow, maxRow } = cameraView;
-    const corners = [
-      projectCell(minCol, minRow),
-      projectCell(maxCol, minRow),
-      projectCell(maxCol, maxRow),
-      projectCell(minCol, maxRow),
-    ];
-    return corners.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
-  }, [cameraView, projectCell]);
+  // User pan + zoom state
+  const [panX, setPanX] = useState(0);
+  const [panZ, setPanZ] = useState(0);
+  const [zoom, setZoom] = useState(1);
 
-  // Pre-compute ground tile diamonds (only explicit ones — default grass left transparent)
-  const groundCells = useMemo(() => {
-    const out: { key: string; x: number; y: number; color: string }[] = [];
-    for (const [key, tile] of tiles) {
-      const [cs, rs] = key.split(",");
-      const c = Number(cs);
-      const r = Number(rs);
-      const p = projectCell(c, r);
-      out.push({ key, x: p.x, y: p.y, color: GROUND_DEFS[tile.ground as GroundKind].swatch });
-    }
-    return out;
-  }, [tiles, projectCell]);
+  // Drag state
+  const drag = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+    moved: boolean;
+  } | null>(null);
 
-  const handleClick = (e: MouseEvent<SVGSVGElement>) => {
+  const screenToWorldDelta = useCallback(
+    (dxPx: number, dyPx: number) => {
+      const svg = svgRef.current;
+      if (!svg) return { dx: 0, dz: 0 };
+      const rect = svg.getBoundingClientRect();
+      const worldPerPxX = base.width / zoom / rect.width;
+      const worldPerPxY = base.height / zoom / rect.height;
+      return { dx: dxPx * worldPerPxX, dz: dyPx * worldPerPxY };
+    },
+    [base, zoom],
+  );
+
+  const screenToWorld = useCallback((clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const local = pt.matrixTransform(ctm.inverse());
+    return { x: local.x, z: local.y };
+  }, []);
+
+  const handlePointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     const svg = svgRef.current;
     if (!svg) return;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return;
-    const local = pt.matrixTransform(ctm.inverse());
-    const cell = invertProject(local.x, local.y);
-    panToCell(cell.col, cell.row);
+    svg.setPointerCapture(e.pointerId);
+    drag.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      lastX: e.clientX,
+      lastY: e.clientY,
+      moved: false,
+    };
   };
 
-  const totalStructures = structures.length;
+  const handlePointerMove = (e: ReactPointerEvent<SVGSVGElement>) => {
+    const d = drag.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    const dxPx = e.clientX - d.lastX;
+    const dyPx = e.clientY - d.lastY;
+    const totalDx = Math.abs(e.clientX - d.startX);
+    const totalDy = Math.abs(e.clientY - d.startY);
+    if (!d.moved && (totalDx > DRAG_THRESHOLD || totalDy > DRAG_THRESHOLD)) {
+      d.moved = true;
+    }
+    if (d.moved) {
+      const { dx, dz } = screenToWorldDelta(-dxPx, -dyPx);
+      setPanX((p) => p + dx);
+      setPanZ((p) => p + dz);
+    }
+    d.lastX = e.clientX;
+    d.lastY = e.clientY;
+  };
+
+  const handlePointerUp = (e: ReactPointerEvent<SVGSVGElement>) => {
+    const d = drag.current;
+    if (!d || d.pointerId !== e.pointerId) return;
+    const wasClick = !d.moved;
+    drag.current = null;
+    svgRef.current?.releasePointerCapture(e.pointerId);
+    if (wasClick) {
+      const world = screenToWorld(e.clientX, e.clientY);
+      if (world) panToWorld(world.x, world.z);
+    }
+  };
+
+  const handlePointerCancel = (e: ReactPointerEvent<SVGSVGElement>) => {
+    if (drag.current?.pointerId === e.pointerId) {
+      drag.current = null;
+      svgRef.current?.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const handleWheel = (e: ReactWheelEvent<SVGSVGElement>) => {
+    const before = screenToWorld(e.clientX, e.clientY);
+    if (!before) return;
+    const factor = e.deltaY < 0 ? 1.18 : 1 / 1.18;
+    const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * factor));
+    if (nextZoom === zoom) return;
+    const fracX = (before.x - (base.minX + panX)) / (base.width / zoom);
+    const fracZ = (before.z - (base.minZ + panZ)) / (base.height / zoom);
+    const newOriginX = before.x - fracX * (base.width / nextZoom);
+    const newOriginZ = before.z - fracZ * (base.height / nextZoom);
+    setPanX(newOriginX - base.minX);
+    setPanZ(newOriginZ - base.minZ);
+    setZoom(nextZoom);
+  };
+
+  const viewBox = useMemo(() => {
+    const w = base.width / zoom;
+    const h = base.height / zoom;
+    const x = base.minX + panX;
+    const z = base.minZ + panZ;
+    return `${x} ${z} ${w} ${h}`;
+  }, [base, panX, panZ, zoom]);
+
+  const resetView = useCallback(() => {
+    setPanX(0);
+    setPanZ(0);
+    setZoom(1);
+  }, []);
 
   return (
     <div className="relative h-full aspect-square">
@@ -142,100 +177,215 @@ export function Minimap() {
         <div
           className="absolute top-0 left-3 right-3 h-[1px]"
           style={{
-            background:
-              "linear-gradient(90deg, transparent, var(--color-agent-scheduling) 50%, transparent)",
+            background: "linear-gradient(90deg, transparent, var(--color-agent-scheduling) 50%, transparent)",
           }}
         />
         <div className="flex items-center justify-between px-2.5 pt-1.5 pb-1 border-b border-[var(--color-rule)]">
           <OrnateTitle size="xs" accentColor="var(--color-agent-scheduling)">
-            Sector Map
+            World Map
           </OrnateTitle>
-          <span className="font-mono text-[8px] text-text-muted truncate max-w-[80px]" title={active?.name}>
-            {active?.region.slice(0, 3).toUpperCase() ?? "—"} · {totalStructures}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span
+              className="font-mono text-[8px] text-text-muted truncate max-w-[80px]"
+              title={activeStation?.name}
+            >
+              {STATIONS.length} stations
+            </span>
+            <button
+              onClick={resetView}
+              title="Recenter & reset zoom"
+              className="font-mono text-[9px] leading-none text-text-muted hover:text-[var(--color-agent-scheduling)] px-1.5 py-0.5 rounded-sm bg-black/30 hover:bg-black/50 transition-colors"
+            >
+              ⊙
+            </button>
+          </div>
         </div>
+
         <svg
           ref={svgRef}
           viewBox={viewBox}
-          className="block w-full h-[calc(100%-26px)] cursor-crosshair"
-          onClick={handleClick}
+          className="block w-full h-[calc(100%-26px)] cursor-crosshair touch-none"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onWheel={handleWheel}
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
-            <pattern id="mm-grid" width="4" height="2" patternUnits="userSpaceOnUse">
-              <rect width="4" height="2" fill="transparent" />
-              <circle cx="0" cy="0" r="0.2" fill="rgba(148,163,184,0.18)" />
+            <pattern id="mm-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148,163,184,0.06)" strokeWidth="0.5" />
             </pattern>
           </defs>
 
-          {/* Background grid */}
+          {/* Big grid background */}
+          <rect x={-5000} y={-5000} width={10000} height={10000} fill="url(#mm-grid)" />
+
+          {/* World boundary */}
           <rect
-            x={-9999}
-            y={-9999}
-            width={19998}
-            height={19998}
-            fill="url(#mm-grid)"
-            opacity={0.35}
+            x={WORLD_BOUNDS.minX}
+            y={WORLD_BOUNDS.minZ}
+            width={WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX}
+            height={WORLD_BOUNDS.maxZ - WORLD_BOUNDS.minZ}
+            fill="rgba(102, 158, 88, 0.12)"
+            stroke="rgba(102, 158, 88, 0.35)"
+            strokeWidth={1}
+            vectorEffect="non-scaling-stroke"
           />
 
-          {/* Explicit ground tiles (pad/asphalt/water/sand) */}
-          {groundCells.map((g) => (
-            <polygon
-              key={g.key}
-              points={diamondPoints(g.x, g.y, tileSize.w, tileSize.h)}
-              fill={g.color}
-              opacity={0.6}
-            />
-          ))}
+          {/* Lakes */}
+          <circle cx={180} cy={-55} r={48} fill="rgba(75, 128, 168, 0.55)" />
+          <circle cx={-260} cy={-180} r={26} fill="rgba(75, 128, 168, 0.55)" />
 
-          {/* Structures */}
-          {structures.map((s) => {
-            const def = STRUCTURE_DEFS[s.kind as StructureKind];
-            // Take the centroid of the footprint
-            const centerC = s.col + (def.footprint.w - 1) / 2;
-            const centerR = s.row + (def.footprint.h - 1) / 2;
-            const p = projectCell(centerC, centerR);
-            const size = footprintScreenSize(def.footprint.w, def.footprint.h, tileSize.w, tileSize.h);
+          {/* Town centre + plaza */}
+          <circle cx={0} cy={0} r={70} fill="rgba(214, 201, 160, 0.25)" stroke="rgba(214, 201, 160, 0.5)" strokeWidth={0.6} vectorEffect="non-scaling-stroke" />
+          <circle cx={0} cy={0} r={14} fill="rgba(214, 201, 160, 0.55)" />
+
+          {/* Main roads */}
+          <line x1={-380} y1={0} x2={380} y2={0} stroke="#58616d" strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
+          <line x1={0} y1={-250} x2={0} y2={250} stroke="#58616d" strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
+          {/* Branch roads to stations */}
+          {STATIONS.map((s, i) => {
+            const towardX = Math.abs(s.pos[0]) > Math.abs(s.pos[2]);
+            const elbowX = towardX ? s.pos[0] : 0;
+            const elbowZ = towardX ? 0 : s.pos[2];
             return (
-              <polygon
-                key={s.id}
-                points={diamondPoints(p.x, p.y, size.w, size.h)}
-                fill={def.swatch}
-                stroke="rgba(0,0,0,0.55)"
-                strokeWidth={0.15}
-              />
+              <g key={i}>
+                <line
+                  x1={0}
+                  y1={0}
+                  x2={elbowX}
+                  y2={elbowZ}
+                  stroke="#454c57"
+                  strokeWidth={1.5}
+                  vectorEffect="non-scaling-stroke"
+                />
+                <line
+                  x1={elbowX}
+                  y1={elbowZ}
+                  x2={s.pos[0]}
+                  y2={s.pos[2]}
+                  stroke="#454c57"
+                  strokeWidth={1.5}
+                  vectorEffect="non-scaling-stroke"
+                />
+              </g>
             );
           })}
 
-          {/* Live viewport rectangle — what the main camera is looking at */}
-          {viewportPolygon && (
-            <polygon
-              points={viewportPolygon}
-              fill="rgba(201,168,90,0.06)"
-              stroke="#c9a85a"
-              strokeWidth={0.7}
-              strokeDasharray="1.5 1"
-              vectorEffect="non-scaling-stroke"
-              pointerEvents="none"
-            />
+          {/* Live camera viewport */}
+          {cameraView && (
+            <>
+              <circle
+                cx={cameraView.x}
+                cy={cameraView.z}
+                r={cameraView.radius}
+                fill="rgba(201,168,90,0.06)"
+                stroke="#c9a85a"
+                strokeWidth={1}
+                strokeDasharray="4 3"
+                vectorEffect="non-scaling-stroke"
+                pointerEvents="none"
+              />
+              <circle
+                cx={cameraView.x}
+                cy={cameraView.z}
+                r={3}
+                fill="#c9a85a"
+                pointerEvents="none"
+              />
+            </>
           )}
+
+          {/* Station dots */}
+          {STATIONS.map((s) => {
+            const isActive = s.plantId === activeId;
+            const tint = STATION_TYPE_TINT[s.type];
+            const statusColour =
+              s.status === "critical" ? "#ef4444" :
+              s.status === "warning"  ? "#f59e0b" :
+                                        tint;
+            return (
+              <g
+                key={s.id}
+                style={{ cursor: "pointer" }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  panToWorld(s.pos[0], s.pos[2]);
+                  selectStation(s.id);
+                }}
+              >
+                {/* Halo when active */}
+                {isActive && (
+                  <circle
+                    cx={s.pos[0]}
+                    cy={s.pos[2]}
+                    r={12}
+                    fill="none"
+                    stroke={tint}
+                    strokeWidth={0.8}
+                    strokeOpacity={0.85}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                )}
+                <circle
+                  cx={s.pos[0]}
+                  cy={s.pos[2]}
+                  r={5}
+                  fill={statusColour}
+                  stroke="#0a0e1a"
+                  strokeWidth={0.8}
+                  vectorEffect="non-scaling-stroke"
+                />
+                {s.status === "critical" && (
+                  <circle
+                    cx={s.pos[0]}
+                    cy={s.pos[2]}
+                    r={8}
+                    fill="none"
+                    stroke={statusColour}
+                    strokeWidth={0.8}
+                    strokeOpacity={0.6}
+                    vectorEffect="non-scaling-stroke"
+                  >
+                    <animate
+                      attributeName="r"
+                      values="8;14;8"
+                      dur="1.4s"
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="stroke-opacity"
+                      values="0.6;0;0.6"
+                      dur="1.4s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                )}
+                {/* Label */}
+                <text
+                  x={s.pos[0] + 8}
+                  y={s.pos[2] - 8}
+                  fill={tint}
+                  fontSize={9}
+                  fontFamily="ui-monospace, Menlo, monospace"
+                  style={{ pointerEvents: "none", textShadow: "0 0 3px #0a0e1a" }}
+                  vectorEffect="non-scaling-stroke"
+                >
+                  {STATION_TYPE_LABEL[s.type]}
+                </text>
+              </g>
+            );
+          })}
         </svg>
 
         {/* Footer */}
         <div className="absolute bottom-1 left-2 right-2 flex items-center justify-between font-mono text-[8px] text-text-muted">
-          <span>click to pan</span>
+          <span>click pan · drag scroll · wheel zoom</span>
           <span className="text-emerald-400">● live</span>
         </div>
       </div>
     </div>
   );
-}
-
-function diamondPoints(cx: number, cy: number, w: number, h: number): string {
-  return `${cx},${cy - h / 2} ${cx + w / 2},${cy} ${cx},${cy + h / 2} ${cx - w / 2},${cy}`;
-}
-
-function footprintScreenSize(w: number, h: number, tw: number, th: number) {
-  // Iso footprint becomes a diamond of (w+h)*tw/2 wide × (w+h)*th/2 tall
-  return { w: (w + h) * (tw / 2), h: (w + h) * (th / 2) };
 }

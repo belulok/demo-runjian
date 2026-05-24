@@ -5,7 +5,8 @@ import { PORTFOLIO_KPI, PRIMARY_KPI } from "@/lib/mock/kpis";
 import { DEVICES } from "@/lib/mock/devices";
 import { useAlertStore } from "@/lib/store/alertStore";
 import { useWorldStore } from "@/lib/store/worldStore";
-import { useLayoutStore } from "@/lib/store/layoutStore";
+import { useCommandStore } from "@/lib/store/commandStore";
+import { STATION_BY_PLANT_ID } from "@/lib/mock/stations";
 import { DataTick } from "@/components/primitives/DataTick";
 import { OrnateTitle } from "@/components/primitives/OrnateTitle";
 import { StateBadge } from "@/components/primitives/StateBadge";
@@ -16,8 +17,21 @@ import { cn } from "@/lib/utils";
 export function OverviewSheet() {
   const alarms = useAlertStore((s) => s.alarms);
   const setActive = useWorldStore((s) => s.setActivePlant);
-  const switchToPlant = useLayoutStore((s) => s.switchToPlant);
+  const panToWorld = useWorldStore((s) => s.panToWorld);
+  const selectStation = useWorldStore((s) => s.selectStation);
+  const closeSheet = useCommandStore((s) => s.close);
   const activeId = useWorldStore((s) => s.activePlantId);
+
+  /** Mirror SectorPicker — fast-travel to the chosen plant's station. */
+  const openPlant = (plantId: string) => {
+    setActive(plantId);
+    const station = STATION_BY_PLANT_ID[plantId];
+    if (station) {
+      panToWorld(station.pos[0], station.pos[2]);
+      selectStation(station.id);
+    }
+    closeSheet();
+  };
 
   const openByPlant: Record<string, number> = {};
   for (const a of alarms) {
@@ -95,10 +109,7 @@ export function OverviewSheet() {
                   <td className="pl-3"><StateBadge state={stateKey} size="xs" /></td>
                   <td className="text-right pr-2">
                     <button
-                      onClick={() => {
-                        setActive(p.id);
-                        switchToPlant(p.id);
-                      }}
+                      onClick={() => openPlant(p.id)}
                       className="font-condensed text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 bg-[#10162a] hover:bg-[#1b2238] clip-hex-frame-sm text-text-secondary hover:text-text-primary"
                     >
                       Open

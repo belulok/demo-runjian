@@ -1,51 +1,40 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
+import { useWorldStore } from "@/lib/store/worldStore";
+import type { ScenePOI } from "@/lib/mock/scenePOIs";
+import { SceneActorCard } from "./SceneActorCard";
 
 /* ============================================================
    SOHAR-style 1000 MW Combined-Cycle Power Plant site (top-view)
    Site is a fenced rectangle ~260m × 165m. 22 numbered facilities
-   are arranged in 4 rows separated by internal roads. The 5 demo
-   plants are mapped onto major facilities so the HUD DetailPanel
-   keeps working when you click a structure.
+   are arranged in 4 rows separated by internal roads. POIs come in
+   from the parent so each sector can have its own set of free-
+   floating points across the same world geometry.
    ============================================================ */
 
-export type ScenePlantStatus = "normal" | "critical" | "offline";
-export interface Plant {
-  id: string;
-  name: string;
-  cap: string;
-  capMW: number;
-  status: ScenePlantStatus;
+interface Props {
+  pois: ScenePOI[];
+  selectedPoiId: string | null;
+  onSelectPoi: (poi: ScenePOI | null) => void;
 }
-const PLANTS: Plant[] = [
-  { id: "kedah",  name: "Kedah-Commercial",  cap: "307.44 kWp", capMW: 0.307, status: "normal"   },
-  { id: "penang", name: "Penang-Commercial", cap: "2,757 kWp",  capMW: 2.757, status: "critical" },
-  { id: "perak",  name: "Perak-Commercial",  cap: "2,855 kWp",  capMW: 2.855, status: "normal"   },
-  { id: "melaka", name: "Melaka-Commercial", cap: "409 kWp",    capMW: 0.409, status: "normal"   },
-  { id: "johor",  name: "Johor-Commercial",  cap: "1,160 kWp",  capMW: 1.160, status: "normal"   },
-];
 
-/** Each demo plant is pinned above a major facility so clicks still
- *  populate the HUD DetailPanel. Penang (critical) sits over HRSG —
- *  the iconic red/white smokestack — so the alarm reads at a glance. */
-const PLANT_PIN: Record<string, { pos: [number, number, number]; label: string }> = {
-  kedah:  { pos: [-102.5,  9,    57.5], label: "Admin"     },
-  penang: { pos: [-110.5, 30,   -27.5], label: "HRSG"      },
-  perak:  { pos: [   0,   16,   -27.5], label: "Cooling"   },
-  melaka: { pos: [ -50,   13,    10  ], label: "Turbine"   },
-  johor:  { pos: [  52.5, 13,    10  ], label: "Switchyard"},
+/** Minimal shape of OrbitControls we touch — avoids pulling in three-stdlib. */
+type ControlsLike = {
+  target: { set: (x: number, y: number, z: number) => void; x: number; y: number; z: number };
+  update: () => void;
 };
 
-interface Props {
-  selectedPlantId: string | null;
-  onSelectPlant: (p: Plant | null) => void;
-}
+export function Scene3D({ pois, selectedPoiId, onSelectPoi }: Props) {
+  const controlsRef = useRef<ControlsLike | null>(null);
+  const selectedPoi = useMemo(
+    () => pois.find((p) => p.id === selectedPoiId) ?? null,
+    [pois, selectedPoiId],
+  );
 
-export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
   return (
     <section className="stage stage-3d">
       <Canvas
@@ -123,16 +112,20 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
         {/* ── Moving vehicles on the road network ── */}
         <Vehicles />
 
-        {/* ── 5 demo plants — POI pins floating above mapped facilities ── */}
-        {PLANTS.map((p) => (
-          <PlantPin
+        {/* ── Active-sector POIs — free-floating across the world ── */}
+        {pois.map((p) => (
+          <POIPin
             key={p.id}
-            plant={p}
-            anchor={PLANT_PIN[p.id].pos}
-            selected={p.id === selectedPlantId}
-            onSelect={() => onSelectPlant(p)}
+            poi={p}
+            selected={p.id === selectedPoiId}
+            onSelect={() => onSelectPoi(p)}
           />
         ))}
+
+        {/* ── In-scene popover card for the selected POI ── */}
+        {selectedPoi && (
+          <SceneActorCard poi={selectedPoi} onClose={() => onSelectPoi(null)} />
+        )}
 
         {/* ── Surrounding landscape (mountains/housing/farms/trees) ── */}
         <Farmland />
@@ -141,18 +134,71 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
         <Mountains />
 
         <OrbitControls
+          ref={(node) => { controlsRef.current = (node as unknown as ControlsLike | null); }}
           target={[0, 6, 0]}
           enableDamping
+          enablePan
+          screenSpacePanning
           minDistance={75}
           maxDistance={360}
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI / 2.4}
-          autoRotate={!selectedPlantId}
+          autoRotate={!selectedPoiId}
           autoRotateSpeed={0.18}
+          mouseButtons={{
+            LEFT: THREE.MOUSE.PAN,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.ROTATE,
+          }}
+          touches={{
+            ONE: THREE.TOUCH.PAN,
+            TWO: THREE.TOUCH.DOLLY_ROTATE,
+          }}
         />
+        <CameraSync controlsRef={controlsRef} />
       </Canvas>
     </section>
   );
+}
+
+/** Bridges the worldStore cameraTarget ↔ OrbitControls.target both ways.
+ *  - When the store's cameraTarget changes (e.g. minimap click), snap to it.
+ *  - On every frame, push the live target back to the store so the minimap
+ *    viewport indicator can follow the user's manual pan. */
+function CameraSync({ controlsRef }: { controlsRef: MutableRefObject<ControlsLike | null> }) {
+  const camera = useThree((s) => s.camera);
+  const cameraTarget = useWorldStore((s) => s.cameraTarget);
+  const setCameraView = useWorldStore((s) => s.setCameraView);
+  const lastPushed = useRef({ x: 0, z: 0, radius: 0 });
+
+  useEffect(() => {
+    if (!cameraTarget || !controlsRef.current) return;
+    controlsRef.current.target.set(cameraTarget.x, 6, cameraTarget.z);
+    controlsRef.current.update();
+  }, [cameraTarget, controlsRef]);
+
+  useFrame(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const t = controls.target;
+    // Approximate visible radius from camera distance + FOV. Cheap & cheerful.
+    const dx = camera.position.x - t.x;
+    const dy = camera.position.y - 6;
+    const dz = camera.position.z - t.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const fov = (camera as THREE.PerspectiveCamera).fov ?? 36;
+    const radius = dist * Math.tan((fov * Math.PI) / 360) * 0.9;
+    const last = lastPushed.current;
+    if (
+      Math.abs(t.x - last.x) > 0.5 ||
+      Math.abs(t.z - last.z) > 0.5 ||
+      Math.abs(radius - last.radius) > 2
+    ) {
+      lastPushed.current = { x: t.x, z: t.z, radius };
+      setCameraView({ x: t.x, z: t.z, radius });
+    }
+  });
+  return null;
 }
 
 /* ============================================================
@@ -1194,14 +1240,18 @@ function FacilityNumber({ n, position }: { n: number; position: [number, number,
 }
 
 /* ============================================================
-   Plant POI pin — floats above one of the mapped facilities
+   POI pin — anchored at a POI's world (x, y, z), not the building
    ============================================================ */
-function PlantPin({ plant, anchor, selected, onSelect }: {
-  plant: Plant; anchor: [number, number, number]; selected: boolean; onSelect: () => void;
+function POIPin({ poi, selected, onSelect }: {
+  poi: ScenePOI; selected: boolean; onSelect: () => void;
 }) {
-  const isAlert = plant.status === "critical";
+  const isAlert = poi.status === "critical";
+  const isOffline = poi.status === "offline";
   return (
-    <group position={anchor} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+    <group
+      position={poi.pos}
+      onClick={(e) => { e.stopPropagation(); onSelect(); }}
+    >
       {isAlert && <PulseRing />}
       {selected && (
         <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -1210,15 +1260,14 @@ function PlantPin({ plant, anchor, selected, onSelect }: {
         </mesh>
       )}
       <Html position={[0, 2.5, 0]} center distanceFactor={18}>
-        <div className={`plant-poi ${isAlert ? "crit" : "ok"}`} onClick={onSelect}>
+        <div
+          className={`plant-poi ${isAlert ? "crit" : isOffline ? "warn" : "ok"} clickable`}
+          onClick={onSelect}
+        >
           <div className="plant-poi-dot" />
           <div className="plant-poi-card">
-            <div className="plant-poi-name">{plant.name.split("-")[0]}</div>
-            <div className="plant-poi-pwr">
-              {plant.capMW < 1
-                ? `${Math.round(plant.capMW * 1000)} kWp`
-                : `${plant.capMW.toFixed(2)} MWp`}
-            </div>
+            <div className="plant-poi-name">{poi.name}</div>
+            <div className="plant-poi-pwr">{poi.role}</div>
           </div>
         </div>
       </Html>

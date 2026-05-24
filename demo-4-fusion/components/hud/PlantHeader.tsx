@@ -9,6 +9,7 @@ import { DataTick } from "@/components/primitives/DataTick";
 import { OrnateTitle } from "@/components/primitives/OrnateTitle";
 import { SectorPicker } from "./SectorPicker";
 import { UnifiedPortalButton } from "./UnifiedPortal";
+import { CommandsLauncher, AgentsLauncher } from "./HUDLaunchers";
 import { formatNumber, formatTime } from "@/lib/utils";
 
 export function PlantHeader() {
@@ -86,6 +87,13 @@ export function PlantHeader() {
             size="md"
             align="left"
           />
+        </div>
+
+        {/* Command + Agent launchers — main entry points now that the bottom
+         *  HUD is gone. Hotkeys (Q/W/E/R/T/Y/U/ and 1-9/0) also work. */}
+        <div className="pointer-events-auto flex items-center gap-1.5 pl-4 border-l border-[var(--color-rule)]">
+          <CommandsLauncher />
+          <AgentsLauncher />
         </div>
 
         {/* Unified Portal */}

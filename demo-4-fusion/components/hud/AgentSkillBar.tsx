@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { AGENTS } from "@/lib/mock/agents";
 import { useAgentStore } from "@/lib/store/agentStore";
@@ -9,31 +8,13 @@ import { AGENT_COLORS } from "@/lib/theme/colors";
 import { cn } from "@/lib/utils";
 
 /** Horizontal DOTA-style skill bar — 10 agents as hex portrait tiles
- *  with hotkey + class name. Replaces the right-side roster. */
+ *  with hotkey + class name. Replaces the right-side roster.
+ *  Hotkey handler lives in BottomHUD so it stays active when this panel
+ *  is collapsed. */
 export function AgentSkillBar() {
   const statuses = useAgentStore((s) => s.statuses);
   const activeAgent = useCommandStore((s) => s.activeAgent);
   const toggleAgent = useCommandStore((s) => s.toggleAgent);
-
-  // Hotkeys 1..9, 0 → invoke that agent's panel
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      const map: Record<string, number> = {
-        "1": 0, "2": 1, "3": 2, "4": 3, "5": 4, "6": 5, "7": 6, "8": 7, "9": 8, "0": 9,
-      };
-      const idx = map[e.key];
-      if (idx == null) return;
-      const agent = AGENTS[idx];
-      if (!agent) return;
-      e.preventDefault();
-      toggleAgent(agent.id);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [toggleAgent]);
 
   return (
     <div className="flex items-stretch h-full gap-1 px-2">
@@ -81,14 +62,24 @@ export function AgentSkillBar() {
             {/* Portrait — hex */}
             <div className="relative">
               <div
-                className="relative w-9 h-9 clip-hex-frame-sm flex items-center justify-center font-display font-bold text-[18px]"
+                className="relative w-9 h-9 clip-hex-frame-sm flex items-center justify-center font-display font-bold text-[18px] overflow-hidden"
                 style={{
                   background: `linear-gradient(135deg, ${color.hex}44 0%, #0a0e1a 70%)`,
                   color: color.hex,
                   border: `1px solid ${color.hex}88`,
                 }}
               >
-                <span style={{ textShadow: `0 0 6px ${color.glow}` }}>{agent.glyph}</span>
+                {agent.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={agent.image}
+                    alt={agent.name}
+                    className="absolute inset-0 w-full h-full object-contain object-bottom drop-shadow-[0_0_4px_rgba(0,0,0,0.45)]"
+                    draggable={false}
+                  />
+                ) : (
+                  <span style={{ textShadow: `0 0 6px ${color.glow}` }}>{agent.glyph}</span>
+                )}
                 {isAlert && (
                   <span
                     className="absolute -inset-0.5 clip-hex-frame-sm animate-alert-pulse pointer-events-none"

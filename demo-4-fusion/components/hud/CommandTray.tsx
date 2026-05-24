@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   BarChart3,
   ClipboardList,
-  Hammer,
   Map as MapIcon,
   Radio,
   Search,
@@ -15,7 +14,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrnateTitle } from "@/components/primitives/OrnateTitle";
-import { useLayoutStore } from "@/lib/store/layoutStore";
 import { useCommandStore, type CommandSheetId } from "@/lib/store/commandStore";
 
 const ACTIONS: { key: CommandSheetId; label: string; icon: typeof Activity; hotkey: string }[] = [
@@ -34,8 +32,6 @@ const ACTIONS: { key: CommandSheetId; label: string; icon: typeof Activity; hotk
 export function CommandTray() {
   const activeSheet = useCommandStore((s) => s.activeSheet);
   const toggle = useCommandStore((s) => s.toggle);
-  const isBuildMode = useLayoutStore((s) => s.isBuildMode);
-  const toggleBuildMode = useLayoutStore((s) => s.toggleBuildMode);
 
   // QWERTYU / hotkeys
   useEffect(() => {
@@ -61,24 +57,9 @@ export function CommandTray() {
       />
       <div className="flex items-center justify-between pb-1 border-b border-[var(--color-rule)]">
         <OrnateTitle size="xs">Command</OrnateTitle>
-        <motion.button
-          onClick={toggleBuildMode}
-          whileTap={{ scale: 0.95 }}
-          className={cn(
-            "relative flex items-center gap-1 px-2 py-0.5 clip-hex-frame-sm transition-all",
-            isBuildMode
-              ? "bg-[#241c10] text-[var(--color-gold-rim)] ring-1 ring-inset ring-[var(--color-gold-deep)]"
-              : "text-text-secondary hover:text-text-primary hover:bg-[#10162a]",
-          )}
-          style={isBuildMode ? { boxShadow: "0 0 12px var(--color-gold-glow)" } : undefined}
-          title="Toggle build mode (B)"
-        >
-          <Hammer className="w-3 h-3" />
-          <span className="font-condensed text-[10px] font-semibold uppercase tracking-[0.16em]">
-            {isBuildMode ? "Build" : "Build"}
-          </span>
-          <span className="font-mono text-[8px] text-text-muted bg-black/40 px-1 rounded-sm">B</span>
-        </motion.button>
+        <span className="font-mono text-[9px] text-text-muted">
+          {ACTIONS.length} actions
+        </span>
       </div>
 
       <div className="grid grid-cols-4 gap-1 mt-1.5">

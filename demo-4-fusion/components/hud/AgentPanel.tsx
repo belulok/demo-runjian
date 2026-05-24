@@ -35,7 +35,7 @@ export function AgentPanel() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 60, opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="absolute left-3 right-3 bottom-[192px] z-40 pointer-events-auto"
+          className="absolute left-3 right-[244px] bottom-3 z-40 pointer-events-auto"
         >
           <PanelContents agentId={activeAgent} onClose={close} />
         </motion.div>
@@ -74,7 +74,7 @@ function PanelContents({ agentId, onClose }: { agentId: keyof typeof AGENT_BY_ID
         {/* Portrait */}
         <div className="relative">
           <div
-            className="relative w-14 h-14 clip-hex-frame-sm flex items-center justify-center font-display font-bold text-[28px]"
+            className="relative w-14 h-14 clip-hex-frame-sm flex items-center justify-center font-display font-bold text-[28px] overflow-hidden"
             style={{
               background: `linear-gradient(135deg, ${color.hex}44 0%, #050810 70%)`,
               color: color.hex,
@@ -82,7 +82,17 @@ function PanelContents({ agentId, onClose }: { agentId: keyof typeof AGENT_BY_ID
               textShadow: `0 0 10px ${color.glow}`,
             }}
           >
-            {agent.glyph}
+            {agent.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={agent.image}
+                alt={agent.name}
+                className="absolute inset-0 w-full h-full object-contain object-bottom drop-shadow-[0_0_6px_rgba(0,0,0,0.5)]"
+                draggable={false}
+              />
+            ) : (
+              agent.glyph
+            )}
             {status === "alert" && (
               <span
                 className="absolute -inset-1 clip-hex-frame-sm animate-alert-pulse pointer-events-none"

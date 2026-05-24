@@ -21,8 +21,12 @@ export type Agent = {
   motto: string;
   className: string;
   level: number;
-  /** Single-letter glyph used in the portrait — stylized as a class icon. */
+  /** Single-letter glyph used in the portrait — stylized as a class icon.
+   *  Falls back if `image` is unset. */
   glyph: string;
+  /** Optional 3D-rendered chibi-robot avatar in /public/images/ai-agents.
+   *  When present, the portrait renders this image instead of the glyph. */
+  image?: string;
 };
 
 export const AGENTS: readonly Agent[] = [
@@ -36,6 +40,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Sentinel",
     level: 24,
     glyph: "⚠",
+    image: "/images/ai-agents/alarm-agent.png",
   },
   {
     id: "diagnosis",
@@ -47,6 +52,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Analyst",
     level: 18,
     glyph: "✦",
+    image: "/images/ai-agents/diagnosis-agent.png",
   },
   {
     id: "warning",
@@ -58,6 +64,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Oracle",
     level: 12,
     glyph: "△",
+    image: "/images/ai-agents/warning-agent.png",
   },
   {
     id: "pv_assistant",
@@ -69,6 +76,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Scholar",
     level: 22,
     glyph: "❖",
+    image: "/images/ai-agents/pv-assistant-agent.png",
   },
   {
     id: "scheduling",
@@ -80,6 +88,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Tactician",
     level: 16,
     glyph: "✺",
+    image: "/images/ai-agents/scheduling-agent.png",
   },
   {
     id: "inspection",
@@ -91,6 +100,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Scout",
     level: 15,
     glyph: "◉",
+    image: "/images/ai-agents/inspection-agent.png",
   },
   {
     id: "ticket",
@@ -102,6 +112,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Clerk",
     level: 21,
     glyph: "⌘",
+    image: "/images/ai-agents/ticket-agent.png",
   },
   {
     id: "data_qa",
@@ -113,6 +124,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Seeker",
     level: 14,
     glyph: "∑",
+    image: "/images/ai-agents/data-qa-agent.png",
   },
   {
     id: "operation",
@@ -124,6 +136,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Steward",
     level: 19,
     glyph: "✧",
+    // image: "/images/ai-agents/operation-agent.png", // TODO: drop file here
   },
   {
     id: "safety",
@@ -135,6 +148,7 @@ export const AGENTS: readonly Agent[] = [
     className: "Warden",
     level: 17,
     glyph: "⛨",
+    // image: "/images/ai-agents/safety-agent.png", // TODO: drop file here
   },
 ] as const;
 

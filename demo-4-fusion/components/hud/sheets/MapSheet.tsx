@@ -5,7 +5,7 @@ import { PLANTS, type Plant } from "@/lib/mock/plants";
 import { DEVICES } from "@/lib/mock/devices";
 import { useAlertStore } from "@/lib/store/alertStore";
 import { useWorldStore } from "@/lib/store/worldStore";
-import { useLayoutStore } from "@/lib/store/layoutStore";
+import { STATION_BY_PLANT_ID } from "@/lib/mock/stations";
 import { useCommandStore } from "@/lib/store/commandStore";
 import { STATE_COLORS } from "@/lib/theme/colors";
 import { OrnateTitle } from "@/components/primitives/OrnateTitle";
@@ -47,7 +47,8 @@ function project(lng: number, lat: number) {
 export function MapSheet() {
   const activeId = useWorldStore((s) => s.activePlantId);
   const setActive = useWorldStore((s) => s.setActivePlant);
-  const switchToPlant = useLayoutStore((s) => s.switchToPlant);
+  const panToWorld = useWorldStore((s) => s.panToWorld);
+  const selectStation = useWorldStore((s) => s.selectStation);
   const closeSheet = useCommandStore((s) => s.close);
   const alarms = useAlertStore((s) => s.alarms);
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -99,7 +100,11 @@ export function MapSheet() {
 
   const handlePick = (p: Plant) => {
     setActive(p.id);
-    switchToPlant(p.id);
+    const station = STATION_BY_PLANT_ID[p.id];
+    if (station) {
+      panToWorld(station.pos[0], station.pos[2]);
+      selectStation(station.id);
+    }
     closeSheet();
   };
 
