@@ -51,7 +51,7 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
       <Canvas
         shadows
         dpr={[1, 2]}
-        camera={{ position: [10, 140, 175], fov: 36, near: 0.1, far: 800 }}
+        camera={{ position: [10, 140, 175], fov: 36, near: 1, far: 800 }}
         gl={{ antialias: true }}
       >
         <hemisphereLight args={["#dceaf6", "#cfd7e0", 0.85]} />
@@ -66,7 +66,7 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
         </mesh>
         <gridHelper args={[800, 80, "#cbd6e2", "#dde6f0"]} position={[0, 0.01, 0]} />
         {/* Plant pad — sandy yellow, matches the reference plot colour */}
-        <mesh receiveShadow position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh receiveShadow position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[275, 185]} />
           <meshStandardMaterial color="#e3dac1" roughness={1} />
         </mesh>
@@ -154,17 +154,17 @@ export function Scene3D({ selectedPlantId, onSelectPlant }: Props) {
 /** Big east-west "Plant Main Access Road" south of the site. */
 function PlantAccessRoad() {
   return (
-    <group position={[0, 0.03, 105]}>
+    <group position={[0, 0.10, 105]}>
       {/* asphalt */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[340, 14]} />
         <meshStandardMaterial color="#2d333f" roughness={0.96} />
       </mesh>
-      {/* dashed centre line */}
+      {/* dashed centre line — lifted clear of the asphalt */}
       {Array.from({ length: 56 }).map((_, i) => (
         <mesh
           key={i}
-          position={[-160 + i * 6, 0.005, 0]}
+          position={[-160 + i * 6, 0.06, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
         >
           <planeGeometry args={[3, 0.25]} />
@@ -173,7 +173,7 @@ function PlantAccessRoad() {
       ))}
       {/* shoulder lines */}
       {[6.5, -6.5].map((z) => (
-        <mesh key={z} position={[0, 0.005, z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh key={z} position={[0, 0.06, z]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[338, 0.18]} />
           <meshStandardMaterial color="#e5e7eb" />
         </mesh>
@@ -208,31 +208,33 @@ function Road({ x, z, length, width, horizontal }: {
 }) {
   const w = horizontal ? length : width;
   const d = horizontal ? width : length;
+  // Vertical roads sit a hair higher than horizontal so they don't z-fight at intersections.
+  const baseY = horizontal ? 0.10 : 0.11;
   return (
-    <group position={[x, 0.04, z]}>
+    <group position={[x, baseY, z]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[w, d]} />
         <meshStandardMaterial color="#3a3f4a" roughness={0.96} />
       </mesh>
-      {/* edge curb stripes (white) */}
+      {/* edge curb stripes (white) — well above the asphalt to avoid z-fighting */}
       {horizontal ? (
         <>
-          <mesh position={[0, 0.005,  d / 2 - 0.25]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh position={[0, 0.06,  d / 2 - 0.25]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[w * 0.985, 0.08]} />
             <meshStandardMaterial color="#e5e7eb" />
           </mesh>
-          <mesh position={[0, 0.005, -d / 2 + 0.25]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh position={[0, 0.06, -d / 2 + 0.25]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[w * 0.985, 0.08]} />
             <meshStandardMaterial color="#e5e7eb" />
           </mesh>
         </>
       ) : (
         <>
-          <mesh position={[ w / 2 - 0.25, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh position={[ w / 2 - 0.25, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[0.08, d * 0.985]} />
             <meshStandardMaterial color="#e5e7eb" />
           </mesh>
-          <mesh position={[-w / 2 + 0.25, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh position={[-w / 2 + 0.25, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[0.08, d * 0.985]} />
             <meshStandardMaterial color="#e5e7eb" />
           </mesh>
@@ -296,7 +298,7 @@ function AdminBuilding({ position }: { position: [number, number, number] }) {
         <boxGeometry args={[14, 6, 9]} />
         <meshStandardMaterial color="#eef3f8" roughness={0.75} />
       </mesh>
-      <mesh position={[0, 6.2, 0]}>
+      <mesh position={[0, 6.4, 0]}>
         <boxGeometry args={[14.2, 0.4, 9.2]} />
         <meshStandardMaterial color="#475569" />
       </mesh>
@@ -366,7 +368,7 @@ function ParkingArea({ position, cols, rows }: {
   const padD = rows * 4.4 + 3;
   return (
     <group position={position}>
-      <mesh receiveShadow position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh receiveShadow position={[0, 0.20, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[padW, padD]} />
         <meshStandardMaterial color="#cbd5e1" roughness={1} />
       </mesh>
@@ -374,7 +376,7 @@ function ParkingArea({ position, cols, rows }: {
       {Array.from({ length: cols + 1 }).map((_, i) => (
         <mesh
           key={i}
-          position={[(i - cols / 2) * 2.4, 0.05, 0]}
+          position={[(i - cols / 2) * 2.4, 0.26, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
         >
           <planeGeometry args={[0.1, padD - 1.5]} />
@@ -752,9 +754,9 @@ function DemineralizedWaterPlant({ position }: { position: [number, number, numb
         <boxGeometry args={[20.2, 0.4, 12.2]} />
         <meshStandardMaterial color="#1e3a8a" metalness={0.4} roughness={0.4} />
       </mesh>
-      {/* roof louvers (blue stripes) */}
+      {/* roof louvers (blue stripes) — clearly above the roof skin */}
       {[-8, -4, 0, 4, 8].map((x) => (
-        <mesh key={x} position={[x, 5.4, 0]}>
+        <mesh key={x} position={[x, 5.55, 0]}>
           <boxGeometry args={[2.4, 0.15, 11.5]} />
           <meshStandardMaterial color="#1e40af" />
         </mesh>
@@ -782,14 +784,14 @@ function RawWaterTank({ position, colour = "#7a8f7e" }: {
         <meshStandardMaterial color="#e9eef4" metalness={0.45} roughness={0.5} />
       </mesh>
       {/* green water surface */}
-      <mesh position={[0, 7.05, 0]}>
+      <mesh position={[0, 7.18, 0]}>
         <cylinderGeometry args={[8.95, 8.95, 0.1, 32]} />
         <meshStandardMaterial color={colour} roughness={0.95} />
       </mesh>
-      {/* seam stripes */}
+      {/* seam stripes — radius slightly larger than tank so they don't z-fight */}
       {[2, 5].map((y) => (
         <mesh key={y} position={[0, y, 0]}>
-          <cylinderGeometry args={[9.05, 9.05, 0.18, 32]} />
+          <cylinderGeometry args={[9.15, 9.15, 0.18, 32]} />
           <meshStandardMaterial color="#94a3b8" />
         </mesh>
       ))}
@@ -860,12 +862,12 @@ function FuelOilTanksLarge({ position }: { position: [number, number, number] })
             <cylinderGeometry args={[6, 6, 8, 32]} />
             <meshStandardMaterial color="#e9eef4" metalness={0.45} roughness={0.5} />
           </mesh>
-          <mesh position={[0, 8.05, 0]}>
+          <mesh position={[0, 8.18, 0]}>
             <cylinderGeometry args={[5.95, 5.95, 0.1, 32]} />
             <meshStandardMaterial color="#7a8f7e" roughness={0.95} />
           </mesh>
           {/* belt */}
-          <mesh position={[0, 4, 0]}>
+          <mesh position={[0, 4.12, 0]}>
             <cylinderGeometry args={[6.05, 6.05, 0.2, 32]} />
             <meshStandardMaterial color="#94a3b8" />
           </mesh>
@@ -941,7 +943,7 @@ function WastewaterTreatment({ position }: { position: [number, number, number] 
             <boxGeometry args={[6, 1, 6]} />
             <meshStandardMaterial color="#cbd5e1" />
           </mesh>
-          <mesh position={[0, 1, 0]}>
+          <mesh position={[0, 1.15, 0]}>
             <boxGeometry args={[5.4, 0.1, 5.4]} />
             <meshStandardMaterial color="#1e8fb5" roughness={0.4} />
           </mesh>
@@ -954,7 +956,7 @@ function WastewaterTreatment({ position }: { position: [number, number, number] 
             <cylinderGeometry args={[1.8, 1.8, 1.2, 20]} />
             <meshStandardMaterial color="#cbd5e1" />
           </mesh>
-          <mesh position={[0, 1.21, 0]}>
+          <mesh position={[0, 1.32, 0]}>
             <cylinderGeometry args={[1.7, 1.7, 0.05, 20]} />
             <meshStandardMaterial color="#10b981" roughness={0.5} />
           </mesh>
@@ -1032,24 +1034,24 @@ function FacilityPad({ w, d, colour = "#d6cca8" }: {
 }) {
   return (
     <group>
-      <mesh receiveShadow position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh receiveShadow position={[0, 0.20, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[w, d]} />
         <meshStandardMaterial color={colour} roughness={1} />
       </mesh>
-      {/* curb border (thin darker rectangle outline) */}
-      <mesh position={[0, 0.07,  d / 2 - 0.15]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* curb border (thin darker rectangle outline) — clearly above the pad */}
+      <mesh position={[0, 0.26,  d / 2 - 0.15]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[w, 0.3]} />
         <meshStandardMaterial color="#8a8068" />
       </mesh>
-      <mesh position={[0, 0.07, -d / 2 + 0.15]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0.26, -d / 2 + 0.15]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[w, 0.3]} />
         <meshStandardMaterial color="#8a8068" />
       </mesh>
-      <mesh position={[ w / 2 - 0.15, 0.07, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[ w / 2 - 0.15, 0.26, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[0.3, d]} />
         <meshStandardMaterial color="#8a8068" />
       </mesh>
-      <mesh position={[-w / 2 + 0.15, 0.07, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[-w / 2 + 0.15, 0.26, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[0.3, d]} />
         <meshStandardMaterial color="#8a8068" />
       </mesh>
